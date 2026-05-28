@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #090a0c;
-  --foreground: #f3f4f6;
-  --card: #121318;
-  --card-foreground: #f3f4f6;
+  --background: #f8f9fa;
+  --foreground: #0f1115;
+  --card: #ffffff;
+  --card-foreground: #0f1115;
   --primary: #e50914;
   --primary-foreground: #ffffff;
-  --secondary: #1f2229;
-  --secondary-foreground: #f3f4f6;
-  --muted: #1f2229;
-  --muted-foreground: #9ca3af;
-  --accent: #2c0e11;
-  --accent-foreground: #ff6b6b;
-  --destructive: #7f1d1d;
-  --destructive-foreground: #fee2e2;
-  --border: #21242e;
-  --input: #1a1c23;
+  --secondary: #f1f3f5;
+  --secondary-foreground: #212529;
+  --muted: #f1f3f5;
+  --muted-foreground: #6c757d;
+  --accent: #fff5f5;
+  --accent-foreground: #e50914;
+  --destructive: #fff5f5;
+  --destructive-foreground: #dc3545;
+  --border: #e9ecef;
+  --input: #ffffff;
   --ring: #e50914;
   --radius: 0.75rem;
 }
@@ -35,11 +35,11 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #090a0c;
+  background: #f8f9fa;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #21242e;
+  background: #dee2e6;
   border-radius: 3px;
 }
 
@@ -47,27 +47,29 @@ body {
   background: #e50914;
 }
 
-/* Glassmorphism Effect */
+/* Glassmorphism Effect - Redesigned for Premium Light theme */
 .glass {
-  background: rgba(18, 19, 24, 0.75);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02);
 }
 
 .glass-red {
-  background: rgba(18, 19, 24, 0.75);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(229, 9, 20, 0.15);
+  border: 1px solid rgba(229, 9, 20, 0.08);
+  box-shadow: 0 4px 30px rgba(229, 9, 20, 0.03);
 }
 
 .glass-glow {
-  box-shadow: 0 0 25px rgba(229, 9, 20, 0.05);
+  box-shadow: 0 4px 20px rgba(229, 9, 20, 0.02);
 }
 
 .glass-glow-strong {
-  box-shadow: 0 0 35px rgba(229, 9, 20, 0.15);
+  box-shadow: 0 10px 30px rgba(229, 9, 20, 0.05);
 }
 
 /* Micro-animations */

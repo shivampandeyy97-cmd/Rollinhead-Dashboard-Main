@@ -168,4 +168,50 @@ export class AuthService {
 
     return { message: 'Password updated successfully' };
   }
+
+  async updateProfile(userId: string, data: { name?: string; companyName?: string; contactEmail?: string; paymentDetails?: string }) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { publisher: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Update User if name is provided
+      if (data.name) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { name: data.name },
+        });
+      }
+
+      // 2. Update Publisher profile if user is a publisher and fields are provided
+      if (user.role === UserRole.PUBLISHER && user.publisher) {
+        await tx.publisher.update({
+          where: { id: user.publisher.id },
+          data: {
+            companyName: data.companyName,
+            contactEmail: data.contactEmail,
+            paymentDetails: data.paymentDetails,
+          },
+        });
+      }
+
+      // 3. Log the audit
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: 'PROFILE_SELF_UPDATE',
+          entity: 'User',
+          entityId: userId,
+          newValue: data,
+        },
+      });
+
+      return { message: 'Profile updated successfully' };
+    });
+  }
 }

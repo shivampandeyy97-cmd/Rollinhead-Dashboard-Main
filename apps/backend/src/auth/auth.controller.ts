@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Req, Res, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch, UseGuards, Req, Res, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import type { Response, Request } from 'express';
@@ -72,6 +72,21 @@ export class AuthController {
   @Get('me')
   async getProfile(@Req() req: any) {
     return req.user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  async updateProfile(
+    @Req() req: any,
+    @Body() body: any,
+  ) {
+    const { name, companyName, contactEmail, paymentDetails } = body;
+    return this.authService.updateProfile(req.user.id, {
+      name,
+      companyName,
+      contactEmail,
+      paymentDetails,
+    });
   }
 
   @UseGuards(JwtAuthGuard)

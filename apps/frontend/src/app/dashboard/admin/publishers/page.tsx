@@ -287,7 +287,7 @@ export default function AdminPublishersPage() {
             
             <form onSubmit={(e) => {
               e.preventDefault();
-              createMutation.mutate({ email, name, password, companyName, contactEmail, paymentDetails });
+              createMutation.mutate({ email, name, password, companyName, contactEmail });
             }} className="space-y-4 text-left">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -350,16 +350,6 @@ export default function AdminPublishersPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Bank Payment details</label>
-                <input
-                  type="text"
-                  placeholder="IBAN / Swift / PayPal"
-                  value={paymentDetails}
-                  onChange={(e) => setPaymentDetails(e.target.value)}
-                  className="w-full bg-[#16181e] border border-[#21242e] text-white rounded-lg py-2.5 px-3 text-xs focus:outline-none"
-                />
-              </div>
 
               <button
                 type="submit"
@@ -410,6 +400,17 @@ export default function AdminPublishersPage() {
                   required
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
+                  className="w-full bg-[#16181e] border border-[#21242e] text-white rounded-lg py-2.5 px-3 text-xs focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Bank Payment Details</label>
+                <input
+                  type="text"
+                  required
+                  value={paymentDetails}
+                  onChange={(e) => setPaymentDetails(e.target.value)}
                   className="w-full bg-[#16181e] border border-[#21242e] text-white rounded-lg py-2.5 px-3 text-xs focus:outline-none"
                 />
               </div>
