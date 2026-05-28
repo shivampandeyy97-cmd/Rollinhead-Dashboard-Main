@@ -1,8 +1,9 @@
 import { Controller, Post, Body, Get, UseGuards, Req, Res, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { Response, Request } from 'express';
+import type { Response, Request } from 'express';
 import { PaymentCycle } from '@prisma/client';
+
 
 @Controller('auth')
 export class AuthController {
