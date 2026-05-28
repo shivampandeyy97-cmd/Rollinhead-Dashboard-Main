@@ -1,0 +1,238 @@
+// =============================================================================
+// Rollinhead Dashboard — Database Schema
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Enums ---
+
+enum UserRole {
+  PUBLISHER
+  ADMIN
+  ANALYST
+  SUPER_ADMIN
+}
+
+enum PublisherStatus {
+  ACTIVE
+  DISABLED
+  PENDING
+}
+
+enum PaymentCycle {
+  NET_15
+  NET_30
+  NET_45
+  NET_60
+}
+
+enum WebsiteCategory {
+  TECH
+  SPORTS
+  ENTERTAINMENT
+  LIFESTYLE
+  NEWS
+  GAMING
+  OTHER
+}
+
+enum TagType {
+  DISPLAY
+  VIDEO
+}
+
+enum DeviceType {
+  DESKTOP
+  MOBILE
+  TABLET
+}
+
+enum UploadStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum NotificationType {
+  ANNOUNCEMENT
+  ALERT
+  INFO
+}
+
+enum DeliveryType {
+  IN_APP
+  EMAIL
+  BOTH
+}
+
+// --- Models ---
+
+model User {
+  id                 String             @id @default(uuid()) @db.Uuid
+  email              String             @unique
+  passwordHash       String
+  role               UserRole           @default(PUBLISHER)
+  name               String
+  isActive           Boolean            @default(true)
+  lastLoginAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Relations
+  publisher          Publisher?
+  revenueShareConfigs RevenueShareConfig[] @relation("ConfigCreator")
+  uploadLogs         UploadLog[]
+  notificationsCreated Notification[]     @relation("NotificationCreator")
+  notificationsRead  NotificationRead[]
+  auditLogs          AuditLog[]
+}
+
+model Publisher {
+  id                 String             @id @default(uuid()) @db.Uuid
+  userId             String             @unique @db.Uuid
+  companyName        String
+  contactEmail       String
+  paymentDetails     String
+  paymentCycle       PaymentCycle       @default(NET_30)
+  status             PublisherStatus    @default(PENDING)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Relations
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  websites           Website[]
+  revenueShareConfigs RevenueShareConfig[]
+}
+
+model Website {
+  id            String          @id @default(uuid()) @db.Uuid
+  publisherId   String          @db.Uuid
+  domain        String          @unique
+  category      WebsiteCategory @default(OTHER)
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  // Relations
+  publisher     Publisher       @relation(fields: [publisherId], references: [id], onDelete: Cascade)
+  tags          Tag[]
+  revenueReports RevenueReport[]
+}
+
+model Tag {
+  id           String     @id @default(uuid()) @db.Uuid
+  websiteId    String     @db.Uuid
+  tagType      TagType    @default(DISPLAY)
+  placementId  String     @unique
+  config       Json?      // JSON configuration for the tag script
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Relations
+  website      Website    @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+}
+
+model RevenueShareConfig {
+  id              String      @id @default(uuid()) @db.Uuid
+  publisherId     String      @db.Uuid
+  sharePercentage Decimal     @db.Decimal(5, 2) // e.g. 80.00 for 80% to publisher
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+  createdBy       String      @db.Uuid
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  publisher       Publisher   @relation(fields: [publisherId], references: [id], onDelete: Cascade)
+  creator         User        @relation("ConfigCreator", fields: [createdBy], references: [id])
+}
+
+model RevenueReport {
+  id           String     @id @default(uuid()) @db.Uuid
+  websiteId    String     @db.Uuid
+  uploadLogId  String     @db.Uuid
+  reportDate   DateTime   @db.Date
+  country      String     @db.VarChar(3) // ISO 3-letter country code
+  device       DeviceType @default(DESKTOP)
+  impressions  BigInt     @default(0)
+  pageviews    BigInt     @default(0)
+  clicks       BigInt     @default(0)
+  grossRevenue Decimal    @db.Decimal(12, 4) // Revenue from demand partners
+  netRevenue   Decimal    @db.Decimal(12, 4) // Revenue after Rollinhead share applied
+  grossCpm     Decimal    @db.Decimal(10, 4) // Calculated: grossRevenue / (impressions/1000)
+  netCpm       Decimal    @db.Decimal(10, 4) // Calculated: netRevenue / (impressions/1000)
+  createdAt    DateTime   @default(now())
+
+  // Relations
+  website      Website    @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  uploadLog    UploadLog  @relation(fields: [uploadLogId], references: [id], onDelete: Cascade)
+
+  @@index([reportDate])
+  @@index([websiteId])
+  @@index([country])
+}
+
+model UploadLog {
+  id            String       @id @default(uuid()) @db.Uuid
+  uploadedBy    String       @db.Uuid
+  fileName      String
+  status        UploadStatus @default(PROCESSING)
+  rowsProcessed Int          @default(0)
+  rowsFailed    Int          @default(0)
+  errorDetails  String?      @db.Text
+  createdAt     DateTime     @default(now())
+
+  // Relations
+  uploader      User         @relation(fields: [uploadedBy], references: [id])
+  revenueReports RevenueReport[]
+}
+
+model Notification {
+  id          String           @id @default(uuid()) @db.Uuid
+  createdBy   String           @db.Uuid
+  title       String
+  message     String           @db.Text
+  type        NotificationType @default(INFO)
+  delivery    DeliveryType     @default(IN_APP)
+  targetRoles Json             // Array of roles that should see this, e.g. ["PUBLISHER"]
+  sentAt      DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+
+  // Relations
+  creator     User             @relation("NotificationCreator", fields: [createdBy], references: [id])
+  reads       NotificationRead[]
+}
+
+model NotificationRead {
+  id             String       @id @default(uuid()) @db.Uuid
+  notificationId String       @db.Uuid
+  userId         String       @db.Uuid
+  readAt         DateTime     @default(now())
+
+  // Relations
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, userId])
+}
+
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  action        String   // e.g. "CREATE_PUBLISHER", "UPDATE_REV_SHARE"
+  entity        String   // e.g. "Publisher", "RevenueShareConfig"
+  entityId      String?  @db.Uuid
+  previousValue Json?
+  newValue      Json?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id])
+}
