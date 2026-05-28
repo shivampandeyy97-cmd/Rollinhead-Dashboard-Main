@@ -211,16 +211,14 @@ export class ReportsService {
     }
 
     const groupField = params.groupBy || 'date';
-    let byFields: any[] = [];
+    const byFields: any[] = ['reportDate'];
     
     if (groupField === 'website') {
-      byFields = ['websiteId'];
+      byFields.push('websiteId');
     } else if (groupField === 'country') {
-      byFields = ['country'];
+      byFields.push('country');
     } else if (groupField === 'device') {
-      byFields = ['device'];
-    } else {
-      byFields = ['reportDate'];
+      byFields.push('device');
     }
 
     const aggregated = await this.prisma.revenueReport.groupBy({
@@ -232,6 +230,9 @@ export class ReportsService {
         clicks: true,
         grossRevenue: true,
         netRevenue: true,
+      },
+      orderBy: {
+        reportDate: 'desc',
       },
     });
 
@@ -247,6 +248,7 @@ export class ReportsService {
       const grossRev = Number(row._sum.grossRevenue || 0);
       const netRev = Number(row._sum.netRevenue || 0);
 
+      const dateStr = row.reportDate!.toISOString().split('T')[0];
       let dimensionName = '';
       if (groupField === 'website') {
         dimensionName = websiteMap.get(row.websiteId!) || 'Unknown Website';
@@ -254,12 +256,13 @@ export class ReportsService {
         dimensionName = row.country!;
       } else if (groupField === 'device') {
         dimensionName = row.device!;
-      } else {
-        dimensionName = row.reportDate!.toISOString().split('T')[0];
       }
 
+      // Display every date as a separate row and show the drilldown sub-dimension alongside it
+      const displayDimension = dimensionName ? `${dateStr} - ${dimensionName}` : dateStr;
+
       const res: any = {
-        dimension: dimensionName,
+        dimension: displayDimension,
         impressions: imps,
         pageviews: Number(row._sum.pageviews || 0),
         clicks: Number(row._sum.clicks || 0),
