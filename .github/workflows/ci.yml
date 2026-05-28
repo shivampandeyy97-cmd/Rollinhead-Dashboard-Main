@@ -1,0 +1,75 @@
+# =============================================================================
+# Rollinhead Dashboard — GitHub Actions CI/CD Workflow
+# =============================================================================
+
+name: Full-Stack CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-and-build:
+    name: Build and Typecheck
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: rollinhead_test
+          POSTGRES_USER: rollinhead_test
+          POSTGRES_PASSWORD: rollinhead_test_pass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 11.4.0
+
+      - name: Get pnpm Store Directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm Cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Monorepo Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync Database (Prisma Client Generation & Migration)
+        env:
+          DATABASE_URL: postgresql://rollinhead_test:rollinhead_test_pass@localhost:5432/rollinhead_test
+        run: |
+          cd apps/backend
+          npx prisma generate
+          npx prisma db push --skip-generate
+
+      - name: Verify Workspace Build Compilation
+        run: pnpm build
+
+      - name: Verify Typescript Type-Safety
+        run: pnpm lint
