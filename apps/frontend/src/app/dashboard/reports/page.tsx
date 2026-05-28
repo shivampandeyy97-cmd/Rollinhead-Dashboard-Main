@@ -45,7 +45,7 @@ export default function ReportsPage() {
     retry: false,
   });
 
-  const useMock = error || !breakdown || breakdown.length === 0;
+  const useMock = error || !breakdown || !Array.isArray(breakdown) || breakdown.length === 0;
 
   // Mock fallbacks
   const mockBreakdown = [
@@ -54,7 +54,7 @@ export default function ReportsPage() {
     { dimension: '2026-05-26', impressions: 380000, pageviews: 440000, clicks: 5400, netRevenue: 820.00, netCpm: 2.15, grossRevenue: 1025.00, margin: 205.00 },
   ];
 
-  const currentData = useMock ? mockBreakdown : breakdown;
+  const currentData = (useMock || !breakdown || !Array.isArray(breakdown)) ? mockBreakdown : breakdown;
 
   const isPublisher = user?.role === 'PUBLISHER';
 

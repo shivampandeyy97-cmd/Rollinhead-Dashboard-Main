@@ -66,7 +66,16 @@ export default function OverviewPage() {
   const loading = overviewLoading || performanceLoading || breakdownLoading;
 
   // --- Beautiful Realistic Mock Data Fallbacks (for zero-setup dev wows) ---
-  const useMock = overviewErr || performanceErr || !overview || !performance || performance.length === 0;
+  const useMock = 
+    overviewErr || 
+    performanceErr || 
+    !overview || 
+    !performance || 
+    !Array.isArray(performance) || 
+    performance.length === 0 ||
+    !breakdown ||
+    !Array.isArray(breakdown) ||
+    breakdown.length === 0;
 
   const mockOverview = {
     netRevenue: { current: 12480.50, changePercent: 12.4 },
@@ -104,9 +113,9 @@ export default function OverviewPage() {
     { dimension: 'sportshub.net', impressions: 2040000, clicks: 30300, netRevenue: 4800.50, netCpm: 2.35 },
   ];
 
-  const currentOverview = useMock ? mockOverview : overview;
-  const currentPerformance = useMock ? mockPerformance : performance;
-  const currentBreakdown = useMock ? mockBreakdown : breakdown;
+  const currentOverview = (useMock || !overview) ? mockOverview : overview;
+  const currentPerformance = (useMock || !performance || !Array.isArray(performance)) ? mockPerformance : performance;
+  const currentBreakdown = (useMock || !breakdown || !Array.isArray(breakdown)) ? mockBreakdown : breakdown;
 
   const isPublisher = user?.role === 'PUBLISHER';
 
