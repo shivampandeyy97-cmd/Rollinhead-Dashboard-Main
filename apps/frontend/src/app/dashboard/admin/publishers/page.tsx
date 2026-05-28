@@ -529,7 +529,7 @@ export default function AdminPublishersPage() {
             }} className="space-y-4 text-left">
               <div className="bg-yellow-950/20 border border-yellow-800/30 p-3 rounded-lg flex items-start space-x-2 text-[10px] font-bold text-[#facc15] leading-relaxed">
                 <AlertTriangle className="h-4.5 w-4.5 flex-shrink-0" />
-                <span>Resetting the password will immediately affect the publisher's login access. Choose a secure new password.</span>
+                <span>Resetting the password will immediately affect the publisher&apos;s login access. Choose a secure new password.</span>
               </div>
 
               <div>
