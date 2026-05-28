@@ -4,7 +4,11 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../../lib/api';
 import { Loader2, UserPlus, Edit3, Key, Percent, ShieldCheck, CheckCircle2, AlertTriangle, Eye, X } from 'lucide-react';
-import { PaymentCycle, PublisherStatus } from '@prisma/client';
+import { PaymentCycle, PublisherStatus } from '@rollinhead/types';
+
+
+
+
 
 export default function AdminPublishersPage() {
   const queryClient = useQueryClient();

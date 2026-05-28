@@ -217,7 +217,7 @@ export default function AdminAnalyticsPage() {
                   dataKey="impressions"
                   nameKey="dimension"
                 >
-                  {currentDeviceData.map((entry, index) => (
+                  {currentDeviceData.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
