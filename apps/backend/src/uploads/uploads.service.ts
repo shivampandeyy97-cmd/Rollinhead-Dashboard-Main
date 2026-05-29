@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UploadStatus, DeviceType, UserRole } from '@prisma/client';
 import * as fs from 'fs';
@@ -23,7 +27,11 @@ export class UploadsService {
     });
   }
 
-  async processCsvUpload(filePath: string, fileName: string, uploadedByUserId: string) {
+  async processCsvUpload(
+    filePath: string,
+    fileName: string,
+    uploadedByUserId: string,
+  ) {
     // 1. Create a processing upload log
     const uploadLog = await this.prisma.uploadLog.create({
       data: {
@@ -67,9 +75,11 @@ export class UploadsService {
     }
 
     // 3. Process rows asynchronously in background so client gets quick response
-    this.processRowsInBackground(rows, uploadLog.id, uploadedByUserId).catch((e) => {
-      console.error('Background CSV processing failed:', e);
-    });
+    this.processRowsInBackground(rows, uploadLog.id, uploadedByUserId).catch(
+      (e) => {
+        console.error('Background CSV processing failed:', e);
+      },
+    );
 
     return {
       message: 'File uploaded and is being processed in the background',
@@ -78,7 +88,11 @@ export class UploadsService {
     };
   }
 
-  private async processRowsInBackground(rows: any[], logId: string, adminUserId: string) {
+  private async processRowsInBackground(
+    rows: any[],
+    logId: string,
+    adminUserId: string,
+  ) {
     let rowsProcessed = 0;
     let rowsFailed = 0;
     const errors: string[] = [];
@@ -108,13 +122,22 @@ export class UploadsService {
       try {
         const domain = (row.domain || row.Domain || '').toLowerCase().trim();
         const dateStr = row.date || row.Date || '';
-        const country = (row.country || row.Country || 'USA').toUpperCase().trim();
-        const deviceStr = (row.device || row.Device || 'DESKTOP').toUpperCase().trim();
-        
-        const impressions = parseInt(row.impressions || row.Impressions || '0', 10);
+        const country = (row.country || row.Country || 'USA')
+          .toUpperCase()
+          .trim();
+        const deviceStr = (row.device || row.Device || 'DESKTOP')
+          .toUpperCase()
+          .trim();
+
+        const impressions = parseInt(
+          row.impressions || row.Impressions || '0',
+          10,
+        );
         const pageviews = parseInt(row.pageviews || row.Pageviews || '0', 10);
         const clicks = parseInt(row.clicks || row.Clicks || '0', 10);
-        const grossRevenue = parseFloat(row.gross_revenue || row.GrossRevenue || row.revenue || '0');
+        const grossRevenue = parseFloat(
+          row.gross_revenue || row.GrossRevenue || row.revenue || '0',
+        );
 
         // Validation
         if (!domain || !dateStr) {
@@ -142,13 +165,18 @@ export class UploadsService {
 
         // Find active revenue shareconfig for that date
         const configs = website.publisher.revenueShareConfigs;
-        let activeShare = 80.00; // Default fallback
+        let activeShare = 80.0; // Default fallback
 
         for (const config of configs) {
           const effectiveFrom = new Date(config.effectiveFrom);
-          const effectiveTo = config.effectiveTo ? new Date(config.effectiveTo) : null;
-          
-          if (reportDate >= effectiveFrom && (!effectiveTo || reportDate < effectiveTo)) {
+          const effectiveTo = config.effectiveTo
+            ? new Date(config.effectiveTo)
+            : null;
+
+          if (
+            reportDate >= effectiveFrom &&
+            (!effectiveTo || reportDate < effectiveTo)
+          ) {
             activeShare = Number(config.sharePercentage);
             break;
           }
@@ -156,7 +184,8 @@ export class UploadsService {
 
         // Apply share config
         const netRevenue = grossRevenue * (activeShare / 100);
-        const grossCpm = impressions > 0 ? (grossRevenue / impressions) * 1000 : 0;
+        const grossCpm =
+          impressions > 0 ? (grossRevenue / impressions) * 1000 : 0;
         const netCpm = impressions > 0 ? (netRevenue / impressions) * 1000 : 0;
 
         reportsToInsert.push({
@@ -198,7 +227,10 @@ export class UploadsService {
       await this.prisma.uploadLog.update({
         where: { id: logId },
         data: {
-          status: rowsFailed > 0 && rowsProcessed === 0 ? UploadStatus.FAILED : UploadStatus.COMPLETED,
+          status:
+            rowsFailed > 0 && rowsProcessed === 0
+              ? UploadStatus.FAILED
+              : UploadStatus.COMPLETED,
           rowsProcessed,
           rowsFailed,
           errorDetails: errors.length > 0 ? errors.join('\n') : null,
@@ -215,7 +247,6 @@ export class UploadsService {
           newValue: { processed: rowsProcessed, failed: rowsFailed },
         },
       });
-
     } catch (e) {
       await this.prisma.uploadLog.update({
         where: { id: logId },

@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import { UserRole, PublisherStatus, PaymentCycle } from '@prisma/client';
@@ -25,7 +30,9 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Your account has been deactivated. Please contact support.');
+      throw new UnauthorizedException(
+        'Your account has been deactivated. Please contact support.',
+      );
     }
 
     const isMatch = await bcrypt.compare(pass, user.passwordHash);
@@ -45,7 +52,7 @@ export class AuthService {
 
   async login(user: any) {
     const payload = { email: user.email, sub: user.id, role: user.role };
-    
+
     // Fetch publisher details if the user is a publisher
     let publisherInfo = null;
     if (user.role === UserRole.PUBLISHER) {
@@ -86,7 +93,9 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException('A user with this email address already exists');
+      throw new ConflictException(
+        'A user with this email address already exists',
+      );
     }
 
     const passwordHash = await this.hashPassword(data.password);
@@ -110,7 +119,8 @@ export class AuthService {
           userId: user.id,
           companyName: data.companyName,
           contactEmail: data.contactEmail || data.email,
-          paymentDetails: data.paymentDetails || 'Bank Transfer details pending',
+          paymentDetails:
+            data.paymentDetails || 'Bank Transfer details pending',
           paymentCycle: data.paymentCycle || PaymentCycle.NET_30,
           status: PublisherStatus.PENDING, // Pending admin approval by default
         },
@@ -120,7 +130,7 @@ export class AuthService {
       await tx.revenueShareConfig.create({
         data: {
           publisherId: publisher.id,
-          sharePercentage: 80.00,
+          sharePercentage: 80.0,
           effectiveFrom: new Date(),
           createdBy: user.id, // Self-created initial record or system
         },
@@ -145,7 +155,10 @@ export class AuthService {
     });
   }
 
-  async changePassword(userId: string, data: { oldPass: string; newPass: string }) {
+  async changePassword(
+    userId: string,
+    data: { oldPass: string; newPass: string },
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -169,7 +182,15 @@ export class AuthService {
     return { message: 'Password updated successfully' };
   }
 
-  async updateProfile(userId: string, data: { name?: string; companyName?: string; contactEmail?: string; paymentDetails?: string }) {
+  async updateProfile(
+    userId: string,
+    data: {
+      name?: string;
+      companyName?: string;
+      contactEmail?: string;
+      paymentDetails?: string;
+    },
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { publisher: true },

@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -12,31 +21,33 @@ export class NotificationsController {
 
   @Get()
   async getNotifications(@Req() req: any) {
-    return this.notificationsService.findAllForUser(req.user.id, req.user.role as UserRole);
+    return this.notificationsService.findAllForUser(
+      req.user.id,
+      req.user.role as UserRole,
+    );
   }
 
   @Post(':id/read')
-  async markRead(
-    @Req() req: any,
-    @Param('id') id: string,
-  ) {
+  async markRead(@Req() req: any, @Param('id') id: string) {
     return this.notificationsService.markAsRead(id, req.user.id);
   }
 
   @Post('read-all')
   async markAllRead(@Req() req: any) {
-    return this.notificationsService.markAllAsRead(req.user.id, req.user.role as UserRole);
+    return this.notificationsService.markAllAsRead(
+      req.user.id,
+      req.user.role as UserRole,
+    );
   }
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  async createNotification(
-    @Req() req: any,
-    @Body() body: any,
-  ) {
+  async createNotification(@Req() req: any, @Body() body: any) {
     const { title, message, type, delivery, targetRoles } = body;
     if (!title || !message || !targetRoles || !Array.isArray(targetRoles)) {
-      throw new BadRequestException('Title, Message, and targetRoles (array) are required');
+      throw new BadRequestException(
+        'Title, Message, and targetRoles (array) are required',
+      );
     }
 
     return this.notificationsService.createNotification({

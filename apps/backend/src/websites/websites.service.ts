@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UserRole, WebsiteCategory, TagType } from '@prisma/client';
 
@@ -16,7 +21,9 @@ export class WebsitesService {
       where: { domain: data.domain },
     });
     if (existing) {
-      throw new ConflictException(`Website domain '${data.domain}' is already registered`);
+      throw new ConflictException(
+        `Website domain '${data.domain}' is already registered`,
+      );
     }
 
     // Check if publisher exists
@@ -24,7 +31,9 @@ export class WebsitesService {
       where: { id: data.publisherId },
     });
     if (!publisher) {
-      throw new NotFoundException(`Publisher with ID '${data.publisherId}' not found`);
+      throw new NotFoundException(
+        `Publisher with ID '${data.publisherId}' not found`,
+      );
     }
 
     return this.prisma.website.create({
@@ -80,14 +89,19 @@ export class WebsitesService {
         where: { userId },
       });
       if (!publisher || website.publisherId !== publisher.id) {
-        throw new ForbiddenException('You do not have permission to access this website');
+        throw new ForbiddenException(
+          'You do not have permission to access this website',
+        );
       }
     }
 
     return website;
   }
 
-  async updateWebsite(id: string, data: { category?: WebsiteCategory; isActive?: boolean }) {
+  async updateWebsite(
+    id: string,
+    data: { category?: WebsiteCategory; isActive?: boolean },
+  ) {
     const website = await this.prisma.website.findUnique({ where: { id } });
     if (!website) {
       throw new NotFoundException('Website not found');
@@ -111,12 +125,17 @@ export class WebsitesService {
 
   // --- Tags Management ---
 
-  async createTag(websiteId: string, data: {
-    tagType: TagType;
-    placementId: string;
-    config?: any;
-  }) {
-    const website = await this.prisma.website.findUnique({ where: { id: websiteId } });
+  async createTag(
+    websiteId: string,
+    data: {
+      tagType: TagType;
+      placementId: string;
+      config?: any;
+    },
+  ) {
+    const website = await this.prisma.website.findUnique({
+      where: { id: websiteId },
+    });
     if (!website) {
       throw new NotFoundException(`Website not found`);
     }
@@ -125,7 +144,9 @@ export class WebsitesService {
       where: { placementId: data.placementId },
     });
     if (existingTag) {
-      throw new ConflictException(`Tag placement ID '${data.placementId}' already exists`);
+      throw new ConflictException(
+        `Tag placement ID '${data.placementId}' already exists`,
+      );
     }
 
     return this.prisma.tag.create({

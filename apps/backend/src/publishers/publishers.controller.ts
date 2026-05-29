@@ -1,4 +1,14 @@
-import { Controller, Get, Patch, Post, Param, Body, UseGuards, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Param,
+  Body,
+  UseGuards,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
 import { PublishersService } from './publishers.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -22,10 +32,7 @@ export class PublishersController {
   }
 
   @Patch(':id')
-  async updatePublisher(
-    @Param('id') id: string,
-    @Body() body: any,
-  ) {
+  async updatePublisher(@Param('id') id: string, @Body() body: any) {
     return this.publishersService.update(id, {
       companyName: body.companyName,
       contactEmail: body.contactEmail,
@@ -38,10 +45,7 @@ export class PublishersController {
   }
 
   @Post(':id/reset-password')
-  async resetPassword(
-    @Param('id') id: string,
-    @Body() body: any,
-  ) {
+  async resetPassword(@Param('id') id: string, @Body() body: any) {
     const { password } = body;
     if (!password) {
       throw new BadRequestException('New password is required');
@@ -57,7 +61,9 @@ export class PublishersController {
   ) {
     const { sharePercentage, effectiveFrom } = body;
     if (sharePercentage === undefined || !effectiveFrom) {
-      throw new BadRequestException('Share percentage and effective from date are required');
+      throw new BadRequestException(
+        'Share percentage and effective from date are required',
+      );
     }
 
     const percentage = parseFloat(sharePercentage);

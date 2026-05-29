@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { WebsitesService } from './websites.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -16,11 +26,12 @@ export class WebsitesController {
   }
 
   @Get('websites/:id')
-  async getWebsite(
-    @Req() req: any,
-    @Param('id') id: string,
-  ) {
-    return this.websitesService.findOne(id, req.user.id, req.user.role as UserRole);
+  async getWebsite(@Req() req: any, @Param('id') id: string) {
+    return this.websitesService.findOne(
+      id,
+      req.user.id,
+      req.user.role as UserRole,
+    );
   }
 
   @Post('websites')
@@ -35,10 +46,7 @@ export class WebsitesController {
 
   @Patch('websites/:id')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  async updateWebsite(
-    @Param('id') id: string,
-    @Body() body: any,
-  ) {
+  async updateWebsite(@Param('id') id: string, @Body() body: any) {
     return this.websitesService.updateWebsite(id, {
       category: body.category as WebsiteCategory,
       isActive: body.isActive,
@@ -54,19 +62,17 @@ export class WebsitesController {
   // --- Tags Endpoints ---
 
   @Get('websites/:id/tags')
-  async getWebsiteTags(
-    @Req() req: any,
-    @Param('id') id: string,
-  ) {
-    return this.websitesService.findTagsForWebsite(id, req.user.id, req.user.role as UserRole);
+  async getWebsiteTags(@Req() req: any, @Param('id') id: string) {
+    return this.websitesService.findTagsForWebsite(
+      id,
+      req.user.id,
+      req.user.role as UserRole,
+    );
   }
 
   @Post('websites/:id/tags')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  async createTag(
-    @Param('id') websiteId: string,
-    @Body() body: any,
-  ) {
+  async createTag(@Param('id') websiteId: string, @Body() body: any) {
     return this.websitesService.createTag(websiteId, {
       tagType: body.tagType as TagType,
       placementId: body.placementId,
@@ -76,10 +82,7 @@ export class WebsitesController {
 
   @Patch('tags/:id')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  async updateTag(
-    @Param('id') id: string,
-    @Body() body: any,
-  ) {
+  async updateTag(@Param('id') id: string, @Body() body: any) {
     return this.websitesService.updateTag(id, {
       isActive: body.isActive,
       config: body.config,

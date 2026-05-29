@@ -15,7 +15,6 @@ export class ReportsService {
     return parsed;
   }
 
-
   async getOverviewMetrics(params: {
     userId: string;
     role: UserRole;
@@ -58,7 +57,7 @@ export class ReportsService {
       if (!publisher) {
         return this.emptyMetrics();
       }
-      
+
       where.website = { publisherId: publisher.id };
       prevWhere.website = { publisherId: publisher.id };
     }
@@ -212,7 +211,7 @@ export class ReportsService {
 
     const groupField = params.groupBy || 'date';
     const byFields: any[] = ['reportDate'];
-    
+
     if (groupField === 'website') {
       byFields.push('websiteId');
     } else if (groupField === 'country') {
@@ -237,7 +236,7 @@ export class ReportsService {
     });
 
     // Populate website names if grouping by website
-    let websiteMap = new Map<string, string>();
+    const websiteMap = new Map<string, string>();
     if (groupField === 'website') {
       const websites = await this.prisma.website.findMany();
       websites.forEach((w) => websiteMap.set(w.id, w.domain));
@@ -251,7 +250,7 @@ export class ReportsService {
       const dateStr = row.reportDate!.toISOString().split('T')[0];
       let dimensionName = '';
       if (groupField === 'website') {
-        dimensionName = websiteMap.get(row.websiteId!) || 'Unknown Website';
+        dimensionName = websiteMap.get(row.websiteId) || 'Unknown Website';
       } else if (groupField === 'country') {
         dimensionName = row.country!;
       } else if (groupField === 'device') {
@@ -259,7 +258,9 @@ export class ReportsService {
       }
 
       // Display every date as a separate row and show the drilldown sub-dimension alongside it
-      const displayDimension = dimensionName ? `${dateStr} - ${dimensionName}` : dateStr;
+      const displayDimension = dimensionName
+        ? `${dateStr} - ${dimensionName}`
+        : dateStr;
 
       const res: any = {
         dimension: displayDimension,
@@ -300,7 +301,7 @@ export class ReportsService {
 
     const cImps = Number(current._sum.impressions || 0);
     const pImps = Number(prev._sum.impressions || 0);
-    
+
     const cPageviews = Number(current._sum.pageviews || 0);
     const pPageviews = Number(prev._sum.pageviews || 0);
 
@@ -315,9 +316,15 @@ export class ReportsService {
 
     const baseStats: any = {
       impressions: { current: cImps, changePercent: getChange(cImps, pImps) },
-      pageviews: { current: cPageviews, changePercent: getChange(cPageviews, pPageviews) },
+      pageviews: {
+        current: cPageviews,
+        changePercent: getChange(cPageviews, pPageviews),
+      },
       clicks: { current: cClicks, changePercent: getChange(cClicks, pClicks) },
-      netRevenue: { current: cNetRev, changePercent: getChange(cNetRev, pNetRev) },
+      netRevenue: {
+        current: cNetRev,
+        changePercent: getChange(cNetRev, pNetRev),
+      },
       netCpm: { current: cNetCpm, changePercent: getChange(cNetCpm, pNetCpm) },
     };
 
@@ -332,9 +339,18 @@ export class ReportsService {
       const cMargin = cGrossRev - cNetRev;
       const pMargin = pGrossRev - pNetRev;
 
-      baseStats.grossRevenue = { current: cGrossRev, changePercent: getChange(cGrossRev, pGrossRev) };
-      baseStats.grossCpm = { current: cGrossCpm, changePercent: getChange(cGrossCpm, pGrossCpm) };
-      baseStats.margin = { current: cMargin, changePercent: getChange(cMargin, pMargin) };
+      baseStats.grossRevenue = {
+        current: cGrossRev,
+        changePercent: getChange(cGrossRev, pGrossRev),
+      };
+      baseStats.grossCpm = {
+        current: cGrossCpm,
+        changePercent: getChange(cGrossCpm, pGrossCpm),
+      };
+      baseStats.margin = {
+        current: cMargin,
+        changePercent: getChange(cMargin, pMargin),
+      };
       baseStats.marginPercent = {
         current: cGrossRev > 0 ? (cMargin / cGrossRev) * 100 : 0,
         changePercent: 0,

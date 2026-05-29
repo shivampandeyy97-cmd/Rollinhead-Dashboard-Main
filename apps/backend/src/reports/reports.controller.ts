@@ -4,7 +4,6 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { Response } from 'express';
 import { UserRole } from '@prisma/client';
 
-
 @Controller('reports')
 @UseGuards(JwtAuthGuard)
 export class ReportsController {
@@ -87,11 +86,28 @@ export class ReportsController {
     });
 
     const isPublisher = req.user.role === UserRole.PUBLISHER;
-    
+
     // Headers
     const headers = isPublisher
-      ? ['Dimension', 'Impressions', 'Pageviews', 'Clicks', 'Net Revenue ($)', 'Net CPM ($)']
-      : ['Dimension', 'Impressions', 'Pageviews', 'Clicks', 'Gross Revenue ($)', 'Net Revenue ($)', 'Margin ($)', 'Gross CPM ($)', 'Net CPM ($)'];
+      ? [
+          'Dimension',
+          'Impressions',
+          'Pageviews',
+          'Clicks',
+          'Net Revenue ($)',
+          'Net CPM ($)',
+        ]
+      : [
+          'Dimension',
+          'Impressions',
+          'Pageviews',
+          'Clicks',
+          'Gross Revenue ($)',
+          'Net Revenue ($)',
+          'Margin ($)',
+          'Gross CPM ($)',
+          'Net CPM ($)',
+        ];
 
     // Map rows to CSV
     const csvRows = [headers.join(',')];
@@ -124,7 +140,10 @@ export class ReportsController {
     const csvContent = csvRows.join('\n');
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=rollinhead_report_${Date.now()}.csv`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=rollinhead_report_${Date.now()}.csv`,
+    );
     res.status(200).send(csvContent);
   }
 }

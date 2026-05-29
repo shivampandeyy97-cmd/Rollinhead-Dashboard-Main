@@ -1,19 +1,25 @@
-import { Controller, Post, Body, Get, Patch, UseGuards, Req, Res, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Patch,
+  UseGuards,
+  Req,
+  Res,
+  BadRequestException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import type { Response, Request } from 'express';
 import { PaymentCycle } from '@prisma/client';
-
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
-  async login(
-    @Body() body: any,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async login(@Body() body: any, @Res({ passthrough: true }) res: Response) {
     const { email, password } = body;
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
@@ -38,12 +44,20 @@ export class AuthController {
   }
 
   @Post('register')
-  async register(
-    @Body() body: any,
-  ) {
-    const { email, name, password, companyName, contactEmail, paymentDetails, paymentCycle } = body;
+  async register(@Body() body: any) {
+    const {
+      email,
+      name,
+      password,
+      companyName,
+      contactEmail,
+      paymentDetails,
+      paymentCycle,
+    } = body;
     if (!email || !name || !password || !companyName) {
-      throw new BadRequestException('Email, Name, Password, and Company Name are required');
+      throw new BadRequestException(
+        'Email, Name, Password, and Company Name are required',
+      );
     }
 
     return this.authService.registerPublisher({
@@ -76,10 +90,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('profile')
-  async updateProfile(
-    @Req() req: any,
-    @Body() body: any,
-  ) {
+  async updateProfile(@Req() req: any, @Body() body: any) {
     const { name, companyName, contactEmail, paymentDetails } = body;
     return this.authService.updateProfile(req.user.id, {
       name,
@@ -91,17 +102,18 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
-  async changePassword(
-    @Req() req: any,
-    @Body() body: any,
-  ) {
+  async changePassword(@Req() req: any, @Body() body: any) {
     const { oldPassword, newPassword } = body;
     if (!oldPassword || !newPassword) {
-      throw new BadRequestException('Old password and new password are required');
+      throw new BadRequestException(
+        'Old password and new password are required',
+      );
     }
 
     if (newPassword.length < 6) {
-      throw new BadRequestException('New password must be at least 6 characters long');
+      throw new BadRequestException(
+        'New password must be at least 6 characters long',
+      );
     }
 
     return this.authService.changePassword(req.user.id, {

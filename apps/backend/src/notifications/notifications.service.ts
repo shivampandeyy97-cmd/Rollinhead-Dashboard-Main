@@ -26,16 +26,24 @@ export class NotificationsService {
     });
 
     // If delivery is EMAIL or BOTH, trigger nodemailer dispatch in the background
-    if (data.delivery === DeliveryType.EMAIL || data.delivery === DeliveryType.BOTH) {
-      this.sendNotificationEmails(notification, data.targetRoles).catch((err) => {
-        console.error('Failed to send notification emails:', err);
-      });
+    if (
+      data.delivery === DeliveryType.EMAIL ||
+      data.delivery === DeliveryType.BOTH
+    ) {
+      this.sendNotificationEmails(notification, data.targetRoles).catch(
+        (err) => {
+          console.error('Failed to send notification emails:', err);
+        },
+      );
     }
 
     return notification;
   }
 
-  private async sendNotificationEmails(notification: any, targetRoles: UserRole[]) {
+  private async sendNotificationEmails(
+    notification: any,
+    targetRoles: UserRole[],
+  ) {
     // 1. Locate recipients matching the targeted user roles
     const users = await this.prisma.user.findMany({
       where: {
@@ -52,22 +60,31 @@ export class NotificationsService {
 
     // 2. Fetch credentials from environment
     const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+    const port = process.env.SMTP_PORT
+      ? parseInt(process.env.SMTP_PORT, 10)
+      : 587;
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
-    const from = process.env.SMTP_FROM || 'Rollinhead Adtech <no-reply@rollinhead.com>';
+    const from =
+      process.env.SMTP_FROM || 'Rollinhead Adtech <no-reply@rollinhead.com>';
 
     const isSmtpConfigured = host && user && pass;
 
     // 3. Fallback: Log email details cleanly if credentials aren't set
     if (!isSmtpConfigured) {
-      console.log('\n------------------------------------------------------------');
-      console.log('📢 [SMTP CONFIG NOT SET] Rollinhead Fallback Email Dispatch');
+      console.log(
+        '\n------------------------------------------------------------',
+      );
+      console.log(
+        '📢 [SMTP CONFIG NOT SET] Rollinhead Fallback Email Dispatch',
+      );
       console.log(`Subject: [Rollinhead Announcement] ${notification.title}`);
       console.log(`Body: ${notification.message}`);
       console.log(`Recipients (${users.length}):`);
       users.forEach((u) => console.log(`  - ${u.name} <${u.email}>`));
-      console.log('------------------------------------------------------------\n');
+      console.log(
+        '------------------------------------------------------------\n',
+      );
       return;
     }
 
@@ -113,7 +130,10 @@ export class NotificationsService {
 
       await Promise.all(emailPromises);
     } catch (transporterErr) {
-      console.error('Nodemailer SMTP Transporter setup failed:', transporterErr);
+      console.error(
+        'Nodemailer SMTP Transporter setup failed:',
+        transporterErr,
+      );
     }
   }
 

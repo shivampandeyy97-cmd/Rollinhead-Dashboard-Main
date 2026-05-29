@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { PublisherStatus, PaymentCycle } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -139,7 +143,9 @@ export class PublishersService {
     }
 
     if (newPass.length < 6) {
-      throw new BadRequestException('Password must be at least 6 characters long');
+      throw new BadRequestException(
+        'Password must be at least 6 characters long',
+      );
     }
 
     const passwordHash = await bcrypt.hash(newPass, 10);
@@ -170,7 +176,9 @@ export class PublishersService {
     }
 
     if (data.sharePercentage < 0 || data.sharePercentage > 100) {
-      throw new BadRequestException('Revenue share percentage must be between 0 and 100');
+      throw new BadRequestException(
+        'Revenue share percentage must be between 0 and 100',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -202,7 +210,10 @@ export class PublishersService {
           action: 'CREATE_REV_SHARE_CONFIG',
           entity: 'RevenueShareConfig',
           entityId: newConfig.id,
-          newValue: { percentage: data.sharePercentage, effectiveFrom: data.effectiveFrom },
+          newValue: {
+            percentage: data.sharePercentage,
+            effectiveFrom: data.effectiveFrom,
+          },
         },
       });
 

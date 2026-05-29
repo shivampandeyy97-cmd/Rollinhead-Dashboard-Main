@@ -3,7 +3,6 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -32,7 +31,8 @@ async function bootstrap() {
 
   const port = process.env.PORT || 4000;
   await app.listen(port);
-  console.log(`🚀 Rollinhead Dashboard API is running on: http://localhost:${port}/api`);
+  console.log(
+    `🚀 Rollinhead Dashboard API is running on: http://localhost:${port}/api`,
+  );
 }
 bootstrap();
-

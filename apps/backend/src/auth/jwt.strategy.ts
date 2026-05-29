@@ -19,17 +19,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           if (tokenFromCookie) {
             return tokenFromCookie;
           }
-          
+
           const authHeader = request?.headers?.authorization;
           if (authHeader && authHeader.startsWith('Bearer ')) {
             return authHeader.substring(7);
           }
-          
+
           return null;
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'rollinhead-jwt-secret-change-in-production-2026',
+      secretOrKey:
+        configService.get<string>('JWT_SECRET') ||
+        'rollinhead-jwt-secret-change-in-production-2026',
     });
   }
 

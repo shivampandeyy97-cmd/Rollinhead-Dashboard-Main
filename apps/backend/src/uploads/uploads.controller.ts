@@ -1,4 +1,13 @@
-import { Controller, Get, Post, UseGuards, UseInterceptors, UploadedFile, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadsService } from './uploads.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -32,26 +41,36 @@ export class UploadsController {
           cb(null, dir);
         },
         filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(
+            null,
+            `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`,
+          );
         },
       }),
       fileFilter: (req, file, cb) => {
         if (!file.originalname.match(/\.(csv)$/)) {
-          return cb(new BadRequestException('Only CSV files are allowed!'), false);
+          return cb(
+            new BadRequestException('Only CSV files are allowed!'),
+            false,
+          );
         }
         cb(null, true);
       },
     }),
   )
-  async uploadFile(
-    @Req() req: any,
-    @UploadedFile() file: any,
-  ) {
+  async uploadFile(@Req() req: any, @UploadedFile() file: any) {
     if (!file) {
-      throw new BadRequestException('No file uploaded or file format is invalid');
+      throw new BadRequestException(
+        'No file uploaded or file format is invalid',
+      );
     }
 
-    return this.uploadsService.processCsvUpload(file.path, file.originalname, req.user.id);
+    return this.uploadsService.processCsvUpload(
+      file.path,
+      file.originalname,
+      req.user.id,
+    );
   }
 }

@@ -27,5 +27,3 @@ import { NotificationsModule } from './notifications/notifications.module';
   providers: [AppService],
 })
 export class AppModule {}
-
-
