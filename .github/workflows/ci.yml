@@ -14,6 +14,8 @@ jobs:
   validate-and-build:
     name: Build and Typecheck
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     services:
       postgres:
@@ -73,3 +75,13 @@ jobs:
 
       - name: Verify Typescript Type-Safety
         run: pnpm lint
+
+      - name: Create .nojekyll File for Pages Bypass
+        run: touch apps/frontend/out/.nojekyll
+
+      - name: Deploy Next.js Static Frontend to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: apps/frontend/out
+          branch: gh-pages
