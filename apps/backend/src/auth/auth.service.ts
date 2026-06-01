@@ -78,15 +78,18 @@ export class AuthService {
     };
   }
 
-  async registerPublisher(data: {
-    email: string;
-    name: string;
-    password: string;
-    companyName: string;
-    contactEmail: string;
-    paymentDetails: string;
-    paymentCycle?: PaymentCycle;
-  }) {
+  async registerPublisher(
+    data: {
+      email: string;
+      name: string;
+      password: string;
+      companyName: string;
+      contactEmail: string;
+      paymentDetails: string;
+      paymentCycle?: PaymentCycle;
+    },
+    requesterRole?: string,
+  ) {
     // Check if email exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email: data.email },
@@ -99,9 +102,10 @@ export class AuthService {
     }
 
     const passwordHash = await this.hashPassword(data.password);
+    const isAdminOnboarded = requesterRole === UserRole.ADMIN || requesterRole === UserRole.SUPER_ADMIN;
 
     // Run in a transaction to create User, Publisher, and default Revenue Share Config
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // 1. Create User
       const user = await tx.user.create({
         data: {
@@ -122,7 +126,7 @@ export class AuthService {
           paymentDetails:
             data.paymentDetails || 'Bank Transfer details pending',
           paymentCycle: data.paymentCycle || PaymentCycle.NET_30,
-          status: PublisherStatus.PENDING, // Pending admin approval by default
+          status: isAdminOnboarded ? PublisherStatus.ACTIVE : PublisherStatus.PENDING,
         },
       });
 
@@ -140,7 +144,7 @@ export class AuthService {
       await tx.auditLog.create({
         data: {
           userId: user.id,
-          action: 'PUBLISHER_REGISTER',
+          action: isAdminOnboarded ? 'PUBLISHER_ONBOARDED_BY_ADMIN' : 'PUBLISHER_REGISTER',
           entity: 'Publisher',
           entityId: publisher.id,
           newValue: { email: user.email, companyName: publisher.companyName },
@@ -153,6 +157,114 @@ export class AuthService {
         publisher,
       };
     });
+
+    // Send emails in the background
+    this.sendOnboardingOrReachoutEmails(result, result.publisher, data.password, requesterRole).catch(
+      (err) => console.error('Failed to dispatch onboarding/reachout emails:', err),
+    );
+
+    return result;
+  }
+
+  private async sendOnboardingOrReachoutEmails(
+    user: any,
+    publisher: any,
+    passwordPlainText: string,
+    requesterRole?: string,
+  ) {
+    const host = process.env.SMTP_HOST;
+    const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    const from = process.env.SMTP_FROM || 'Rollinhead Adtech <no-reply@rollinhead.com>';
+
+    const isSmtpConfigured = !!(host && smtpUser && smtpPass);
+    const isAdminOnboarded = requesterRole === 'ADMIN' || requesterRole === 'SUPER_ADMIN';
+
+    // 1. Fallback: Log email details cleanly if credentials aren't set
+    if (!isSmtpConfigured) {
+      console.log('\n------------------------------------------------------------');
+      if (isAdminOnboarded) {
+        console.log('📢 [SMTP CONFIG NOT SET] Rollinhead Welcome Onboarding Email');
+        console.log(`To: ${user.name} <${user.email}>`);
+        console.log(`Subject: [Rollinhead] Welcome to the Publisher Dashboard!`);
+        console.log(`Body:\nHi ${user.name},\n\nWelcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.\n\nHere are your login credentials:\n  - Dashboard URL: https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main/\n  - Email Address: ${user.email}\n  - Temporary Password: ${passwordPlainText}\n\nYou can change your password at any time in your Account Settings panel.\n\nBest regards,\nRollinhead Ops Team`);
+      } else {
+        console.log('📢 [SMTP CONFIG NOT SET] Rollinhead Self-Registration Alert');
+        console.log(`To: contact@rollinhead.com`);
+        console.log(`Subject: New publisher reachout`);
+        console.log(`Body:\nA new publisher has self-registered on the Rollinhead Dashboard.\n\nPublisher Profile Details:\n  - Contact Name: ${user.name}\n  - Company Name: ${publisher.companyName}\n  - Email Address: ${user.email}\n  - Status: PENDING admin approval\n\nPlease log in to approve this partner's website inventory.\n\nLink: https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main/`);
+      }
+      console.log('------------------------------------------------------------\n');
+      return;
+    }
+
+    // 2. Send actual SMTP emails using nodemailer
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+
+      if (isAdminOnboarded) {
+        // Send onboarding email to publisher
+        await transporter.sendMail({
+          from,
+          to: user.email,
+          subject: '[Rollinhead] Welcome to the Publisher Dashboard!',
+          text: `Hi ${user.name},\n\nWelcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.\n\nHere are your login credentials:\n  - Dashboard URL: https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main/\n  - Email Address: ${user.email}\n  - Temporary Password: ${passwordPlainText}\n\nYou can change your password at any time in your Account Settings panel.\n\nBest regards,\nRollinhead Ops Team`,
+          html: `
+            <div style="font-family: sans-serif; padding: 25px; max-width: 600px; border: 1px solid #e9ecef; border-radius: 8px; color: #333;">
+              <h2 style="color: #e50914; margin-top: 0; font-weight: 900; tracking-tight: -0.05em;">ROLLINHEAD</h2>
+              <p>Hi <strong>${user.name}</strong>,</p>
+              <p>Welcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.</p>
+              <div style="background-color: #f8f9fa; border-left: 4px solid #e50914; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <h4 style="margin: 0 0 10px 0; color: #0f1115; font-size: 14px; font-weight: bold;">Your Login Credentials</h4>
+                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Dashboard Link:</strong> <a href="https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main/" style="color: #e50914; text-decoration: none;">Access Dashboard</a></p>
+                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Email Address:</strong> ${user.email}</p>
+                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Temporary Password:</strong> <code style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-family: monospace;">${passwordPlainText}</code></p>
+              </div>
+              <p style="font-size: 13px; color: #495057; line-height: 1.5;">You can change this temporary password at any time in your <strong>Account Settings</strong> panel after logging in.</p>
+              <p style="font-size: 11px; color: #6c757d; margin-top: 30px; border-top: 1px solid #e9ecef; padding-top: 15px;">
+                This is an automated operational broadcast from Rollinhead Adtech. Please do not reply directly to this mail.
+              </p>
+            </div>
+          `,
+        });
+      } else {
+        // Send alert email to contact@rollinhead.com
+        await transporter.sendMail({
+          from,
+          to: 'contact@rollinhead.com',
+          subject: 'New publisher reachout',
+          text: `Hi Ops Team,\n\nA new publisher has self-registered on the Rollinhead Dashboard.\n\nPublisher Profile Details:\n  - Contact Name: ${user.name}\n  - Company Name: ${publisher.companyName}\n  - Email Address: ${user.email}\n  - Status: PENDING admin approval\n\nPlease log in to approve this partner's website inventory.\n\nLink: https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main/`,
+          html: `
+            <div style="font-family: sans-serif; padding: 25px; max-width: 600px; border: 1px solid #e9ecef; border-radius: 8px; color: #333;">
+              <h2 style="color: #000000; margin-top: 0; font-weight: 900; tracking-tight: -0.05em;">ROLLINHEAD OPS</h2>
+              <p>Hi Team,</p>
+              <p>A new publisher has self-registered on the Rollinhead Dashboard and is awaiting approval.</p>
+              <div style="background-color: #f8f9fa; border-left: 4px solid #333; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <h4 style="margin: 0 0 10px 0; color: #0f1115; font-size: 14px; font-weight: bold;">New Publisher Details</h4>
+                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Owner Name:</strong> ${user.name}</p>
+                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Company Name:</strong> ${publisher.companyName}</p>
+                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Email Address:</strong> ${user.email}</p>
+                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Approval Status:</strong> <span style="color: #facc15; font-weight: bold;">PENDING</span></p>
+              </div>
+              <p style="font-size: 13px; color: #495057; line-height: 1.5;">Please log in to the administrator portal to review their inventory and approve their account.</p>
+              <p style="margin-top: 25px;"><a href="https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main/" style="background-color: #e50914; color: white; padding: 10px 18px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block;">Access Admin Panel</a></p>
+            </div>
+          `,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to send SMTP emails inside registerPublisher:', err);
+    }
   }
 
   async changePassword(

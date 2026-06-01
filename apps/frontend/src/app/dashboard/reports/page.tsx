@@ -45,7 +45,8 @@ export default function ReportsPage() {
     retry: false,
   });
 
-  const useMock = error || !breakdown || !Array.isArray(breakdown) || breakdown.length === 0;
+  const isPublisher = user?.role === 'PUBLISHER';
+  const useMock = !isPublisher && (error || !breakdown || !Array.isArray(breakdown) || breakdown.length === 0);
 
   // Mock fallbacks
   const mockBreakdown = [
@@ -54,9 +55,7 @@ export default function ReportsPage() {
     { dimension: '2026-05-26', impressions: 380000, pageviews: 440000, clicks: 5400, netRevenue: 820.00, netCpm: 2.15, grossRevenue: 1025.00, margin: 205.00 },
   ];
 
-  const currentData = (useMock || !breakdown || !Array.isArray(breakdown)) ? mockBreakdown : breakdown;
-
-  const isPublisher = user?.role === 'PUBLISHER';
+  const currentData = useMock ? mockBreakdown : (Array.isArray(breakdown) ? breakdown : []);
 
   // Handle Export CSV
   const handleExportCsv = () => {
@@ -72,20 +71,20 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in text-slate-800 font-sans">
       
       {/* Title / Action */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-white tracking-tight">Performance Reports</h2>
-          <p className="text-xs text-gray-400 font-semibold tracking-wide mt-1">
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Performance Reports</h2>
+          <p className="text-xs text-slate-500 font-semibold tracking-wide mt-1">
             Analyze website metrics with dimension drilldowns and filters
           </p>
         </div>
 
         <button
           onClick={handleExportCsv}
-          className="flex items-center justify-center space-x-2 bg-gradient-to-r from-[#e50914] to-[#ff5757] hover:from-[#c20811] hover:to-[#e04545] text-white px-5 py-3 rounded-lg text-xs font-black transition-all cursor-pointer shadow-lg shadow-[#e5091422] hover:shadow-[#e5091444] self-start md:self-auto"
+          className="flex items-center justify-center space-x-2 bg-gradient-to-r from-[#e50914] to-[#ff5757] hover:from-[#c20811] hover:to-[#e04545] text-white px-5 py-3 rounded-lg text-xs font-black transition-all cursor-pointer shadow-md hover:shadow-lg shadow-red-500/10 hover:shadow-red-500/20 self-start md:self-auto"
         >
           <Download className="h-4 w-4" />
           <span>Export CSV Report</span>
@@ -93,44 +92,44 @@ export default function ReportsPage() {
       </div>
 
       {/* Advanced Filter Box */}
-      <div className="glass rounded-xl p-6">
+      <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
         <h3 className="text-xs font-black uppercase text-[#e50914] tracking-wider mb-4">Report Configurations</h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           
           {/* Start Date */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Start Date</label>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Start Date</label>
             <div className="relative">
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-[#16181e] border border-[#21242e] focus:border-[#e50914] text-white rounded-lg py-2.5 px-3 text-xs focus:outline-none transition-all"
+                className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all shadow-sm"
               />
             </div>
           </div>
 
           {/* End Date */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">End Date</label>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">End Date</label>
             <div className="relative">
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-[#16181e] border border-[#21242e] focus:border-[#e50914] text-white rounded-lg py-2.5 px-3 text-xs focus:outline-none transition-all"
+                className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all shadow-sm"
               />
             </div>
           </div>
 
           {/* Group By */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Drilldown (Group By)</label>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Drilldown (Group By)</label>
             <select
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value)}
-              className="w-full bg-[#16181e] border border-[#21242e] focus:border-[#e50914] text-white rounded-lg py-2.5 px-3 text-xs focus:outline-none transition-all cursor-pointer"
+              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all cursor-pointer shadow-sm"
             >
               <option value="date">Date</option>
               <option value="website">Website</option>
@@ -141,11 +140,11 @@ export default function ReportsPage() {
 
           {/* Website Filter */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Website Filter</label>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Website Filter</label>
             <select
               value={websiteId}
               onChange={(e) => setWebsiteId(e.target.value)}
-              className="w-full bg-[#16181e] border border-[#21242e] focus:border-[#e50914] text-white rounded-lg py-2.5 px-3 text-xs focus:outline-none transition-all cursor-pointer"
+              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all cursor-pointer shadow-sm"
             >
               <option value="">All Websites</option>
               {websites && websites.map((w: any) => (
@@ -156,23 +155,23 @@ export default function ReportsPage() {
 
           {/* Country Filter */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Country Code</label>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Country Code</label>
             <input
               type="text"
               placeholder="e.g. USA, GBR"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              className="w-full bg-[#16181e] border border-[#21242e] focus:border-[#e50914] text-white rounded-lg py-2.5 px-3 text-xs focus:outline-none transition-all uppercase"
+              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all uppercase placeholder-slate-400 shadow-sm"
             />
           </div>
 
           {/* Device Filter */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Device</label>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Device</label>
             <select
               value={device}
               onChange={(e) => setDevice(e.target.value)}
-              className="w-full bg-[#16181e] border border-[#21242e] focus:border-[#e50914] text-white rounded-lg py-2.5 px-3 text-xs focus:outline-none transition-all cursor-pointer"
+              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all cursor-pointer shadow-sm"
             >
               <option value="">All Devices</option>
               <option value="DESKTOP">Desktop</option>
@@ -185,16 +184,16 @@ export default function ReportsPage() {
       </div>
 
       {/* Reports Table Grid */}
-      <div className="glass rounded-xl overflow-hidden relative">
+      <div className="bg-white border border-slate-100 rounded-xl overflow-hidden relative shadow-sm">
         {isLoading && (
-          <div className="absolute inset-0 bg-[#090a0c99] z-20 flex items-center justify-center">
+          <div className="absolute inset-0 bg-white/70 z-20 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-[#e50914]" />
           </div>
         )}
         
-        <div className="px-6 py-5 border-b border-[#16181c] flex items-center space-x-2">
-          <Table className="h-4 w-4 text-gray-500" />
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center space-x-2">
+          <Table className="h-4 w-4 text-slate-400" />
+          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
             Reports: Grouped by <span className="text-[#e50914]">{groupBy}</span>
           </h3>
         </div>
@@ -202,66 +201,74 @@ export default function ReportsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-[#1a1c20] text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                <th className="px-6 py-4">Dimension ({groupBy})</th>
-                <th className="px-6 py-4">Impressions</th>
-                <th className="px-6 py-4">Pageviews</th>
-                <th className="px-6 py-4">Clicks</th>
+              <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50">
+                <th className="px-6 py-3.5">Dimension ({groupBy})</th>
+                <th className="px-6 py-3.5">Impressions</th>
+                <th className="px-6 py-3.5">Pageviews</th>
+                <th className="px-6 py-3.5">Clicks</th>
                 
                 {/* Admin Columns */}
-                {!isPublisher && <th className="px-6 py-4">Gross Revenue</th>}
-                <th className="px-6 py-4">Net Revenue</th>
-                {!isPublisher && <th className="px-6 py-4">Margin</th>}
+                {!isPublisher && <th className="px-6 py-3.5">Gross Revenue</th>}
+                <th className="px-6 py-3.5">Net Revenue</th>
+                {!isPublisher && <th className="px-6 py-3.5">Margin</th>}
                 
-                {!isPublisher && <th className="px-6 py-4">Gross CPM</th>}
-                <th className="px-6 py-4">Net CPM</th>
+                {!isPublisher && <th className="px-6 py-3.5">Gross CPM</th>}
+                <th className="px-6 py-3.5">Net CPM</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#16181c] text-xs font-semibold">
-              {currentData.map((row: any, i: number) => {
-                const imps = Number(row.impressions);
-                const pageviews = Number(row.pageviews);
-                const clicks = Number(row.clicks);
-                const netRev = Number(row.netRevenue);
-                const netCpm = Number(row.netCpm);
+            <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+              {currentData.length === 0 ? (
+                <tr>
+                  <td colSpan={isPublisher ? 5 : 9} className="px-6 py-10 text-center text-slate-400 font-medium bg-white">
+                    No performance records found for the selected configurations.
+                  </td>
+                </tr>
+              ) : (
+                currentData.map((row: any, i: number) => {
+                  const imps = Number(row.impressions);
+                  const pageviews = Number(row.pageviews);
+                  const clicks = Number(row.clicks);
+                  const netRev = Number(row.netRevenue);
+                  const netCpm = Number(row.netCpm);
 
-                return (
-                  <tr key={i} className="hover:bg-[#121318] transition-all">
-                    <td className="px-6 py-4 font-bold text-white flex items-center space-x-2">
-                      {groupBy === 'date' && <Calendar className="h-3.5 w-3.5 text-gray-500" />}
-                      {groupBy === 'device' && <Laptop className="h-3.5 w-3.5 text-gray-500" />}
-                      {groupBy === 'country' && <Globe2 className="h-3.5 w-3.5 text-gray-500" />}
-                      {groupBy === 'website' && <Layers className="h-3.5 w-3.5 text-gray-500" />}
-                      <span>{row.dimension}</span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-400">{imps.toLocaleString()}</td>
-                    <td className="px-6 py-4 text-gray-400">{pageviews.toLocaleString()}</td>
-                    <td className="px-6 py-4 text-gray-400">{clicks.toLocaleString()}</td>
-                    
-                    {/* Admin Columns */}
-                    {!isPublisher && (
-                      <td className="px-6 py-4 text-gray-400 font-bold">
-                        ${Number(row.grossRevenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  return (
+                    <tr key={i} className="hover:bg-slate-50/50 transition-all">
+                      <td className="px-6 py-4 font-bold text-slate-900 flex items-center space-x-2">
+                        {groupBy === 'date' && <Calendar className="h-3.5 w-3.5 text-slate-400" />}
+                        {groupBy === 'device' && <Laptop className="h-3.5 w-3.5 text-slate-400" />}
+                        {groupBy === 'country' && <Globe2 className="h-3.5 w-3.5 text-slate-400" />}
+                        {groupBy === 'website' && <Layers className="h-3.5 w-3.5 text-slate-400" />}
+                        <span>{row.dimension}</span>
                       </td>
-                    )}
-                    
-                    <td className="px-6 py-4 text-[#e50914] font-black">
-                      ${netRev.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </td>
-                    
-                    {!isPublisher && (
-                      <td className="px-6 py-4 text-green-500 font-bold">
-                        ${Number(row.margin || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      <td className="px-6 py-4 text-slate-500">{imps.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-slate-500">{pageviews.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-slate-500">{clicks.toLocaleString()}</td>
+                      
+                      {/* Admin Columns */}
+                      {!isPublisher && (
+                        <td className="px-6 py-4 text-slate-500 font-bold">
+                          ${Number(row.grossRevenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                      )}
+                      
+                      <td className="px-6 py-4 text-[#e50914] font-black">
+                        ${netRev.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
-                    )}
+                      
+                      {!isPublisher && (
+                        <td className="px-6 py-4 text-green-600 font-bold">
+                          ${Number(row.margin || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                      )}
 
-                    {!isPublisher && (
-                      <td className="px-6 py-4 text-gray-400">${Number(row.grossCpm || 0).toFixed(2)}</td>
-                    )}
-                    <td className="px-6 py-4 text-gray-400">${netCpm.toFixed(2)}</td>
-                  </tr>
-                );
-              })}
+                      {!isPublisher && (
+                        <td className="px-6 py-4 text-slate-500">${Number(row.grossCpm || 0).toFixed(2)}</td>
+                      )}
+                      <td className="px-6 py-4 text-slate-500">${netCpm.toFixed(2)}</td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

@@ -11,12 +11,16 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { JwtService } from '@nestjs/jwt';
 import type { Response, Request } from 'express';
 import { PaymentCycle } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private jwtService: JwtService,
+  ) {}
 
   @Post('login')
   async login(@Body() body: any, @Res({ passthrough: true }) res: Response) {
@@ -44,7 +48,7 @@ export class AuthController {
   }
 
   @Post('register')
-  async register(@Body() body: any) {
+  async register(@Req() req: Request, @Body() body: any) {
     const {
       email,
       name,
@@ -60,15 +64,33 @@ export class AuthController {
       );
     }
 
-    return this.authService.registerPublisher({
-      email,
-      name,
-      password,
-      companyName,
-      contactEmail,
-      paymentDetails,
-      paymentCycle: paymentCycle as PaymentCycle,
-    });
+    // Try to extract and decode JWT to check if requester is an admin
+    let requesterRole: string | undefined = undefined;
+    try {
+      const token = req.cookies?.access_token || 
+                    (req.headers.authorization?.startsWith('Bearer ') 
+                      ? req.headers.authorization.substring(7) 
+                      : null);
+      if (token) {
+        const payload = this.jwtService.verify(token);
+        requesterRole = payload?.role;
+      }
+    } catch (e) {
+      // Ignore token verification errors (means it is an unauthenticated guest signup)
+    }
+
+    return this.authService.registerPublisher(
+      {
+        email,
+        name,
+        password,
+        companyName,
+        contactEmail,
+        paymentDetails,
+        paymentCycle: paymentCycle as PaymentCycle,
+      },
+      requesterRole,
+    );
   }
 
   @Post('logout')
