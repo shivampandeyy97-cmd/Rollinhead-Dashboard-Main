@@ -12,12 +12,22 @@ async function bootstrap() {
   // Use cookie-parser middleware for JWT secure cookies
   app.use(cookieParser());
 
+  // Define allowed origins for CORS
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://shivampandeyy97-cmd.github.io',
+  ];
+  if (process.env.CORS_ORIGIN) {
+    const extraOrigins = process.env.CORS_ORIGIN.split(',').map((o) => o.trim());
+    allowedOrigins.push(...extraOrigins);
+  }
+
   // Enable CORS with credentials support
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    allowedHeaders: 'Content-Type, Accept, Authorization, Cookie',
   });
 
   // Global validation pipe
