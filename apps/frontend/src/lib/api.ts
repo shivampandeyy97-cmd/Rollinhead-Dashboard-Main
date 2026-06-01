@@ -13,6 +13,12 @@ class ApiClient {
     if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
       headers.set('Content-Type', 'application/json');
     }
+
+    // Attach JWT Bearer Token if stored
+    const token = typeof window !== 'undefined' ? localStorage.getItem('rollinhead_token') : null;
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
     
     // Enable cookie credentials
     const credentials = 'include';

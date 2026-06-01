@@ -40,6 +40,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await api.post('/auth/login', { email, password });
+      
+      // Save token locally
+      if (typeof window !== 'undefined' && data.accessToken) {
+        localStorage.setItem('rollinhead_token', data.accessToken);
+      }
+
       set({
         user: data.user,
         isAuthenticated: true,
@@ -62,6 +68,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (err) {
       console.error('Logout API failed:', err);
     } finally {
+      // Clear token locally
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('rollinhead_token');
+      }
+
       set({
         user: null,
         isAuthenticated: false,
@@ -73,6 +84,18 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   checkAuth: async () => {
     set({ isLoading: true, error: null });
+    
+    // Quick exit if no local token is present to avoid redundant 401s on initial load
+    const token = typeof window !== 'undefined' ? localStorage.getItem('rollinhead_token') : null;
+    if (!token) {
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+      return null;
+    }
+
     try {
       const user = await api.get('/auth/me');
       set({
@@ -82,6 +105,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
       return user;
     } catch (err) {
+      // Clear invalid/expired token
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('rollinhead_token');
+      }
+
       set({
         user: null,
         isAuthenticated: false,
