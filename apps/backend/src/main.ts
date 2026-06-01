@@ -22,6 +22,14 @@ async function bootstrap() {
     allowedOrigins.push(...extraOrigins);
   }
 
+  // Support Private Network Access (PNA) CORS preflights
+  app.use((req: any, res: any, next: any) => {
+    if (req.headers['access-control-request-private-network']) {
+      res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    }
+    next();
+  });
+
   // Enable CORS with credentials support
   app.enableCors({
     origin: allowedOrigins,
