@@ -16,6 +16,7 @@ async function bootstrap() {
   const allowedOrigins = [
     'http://localhost:3000',
     'https://shivampandeyy97-cmd.github.io',
+    'https://dash.rollinhead.com',
   ];
   if (process.env.CORS_ORIGIN) {
     const extraOrigins = process.env.CORS_ORIGIN.split(',').map((o) => o.trim());

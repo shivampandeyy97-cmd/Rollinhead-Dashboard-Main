@@ -192,12 +192,12 @@ export class AuthService {
         console.log('📢 [SMTP CONFIG NOT SET] Rollinhead Welcome Onboarding Email');
         console.log(`To: ${user.name} <${user.email}>`);
         console.log(`Subject: [Rollinhead] Welcome to the Publisher Dashboard!`);
-        console.log(`Body:\nHi ${user.name},\n\nWelcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.\n\nHere are your login credentials:\n  - Dashboard URL: https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main/\n  - Email Address: ${user.email}\n  - Temporary Password: ${passwordPlainText}\n\nYou can change your password at any time in your Account Settings panel.\n\nBest regards,\nRollinhead Ops Team`);
+        console.log(`Body:\nHi ${user.name},\n\nWelcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.\n\nHere are your login credentials:\n  - Dashboard URL: https://dash.rollinhead.com/\n  - Email Address: ${user.email}\n  - Temporary Password: ${passwordPlainText}\n\nYou can change your password at any time in your Account Settings panel.\n\nBest regards,\nRollinhead Ops Team`);
       } else {
         console.log('📢 [SMTP CONFIG NOT SET] Rollinhead Self-Registration Alert');
         console.log(`To: contact@rollinhead.com`);
         console.log(`Subject: New publisher reachout`);
-        console.log(`Body:\nA new publisher has self-registered on the Rollinhead Dashboard.\n\nPublisher Profile Details:\n  - Contact Name: ${user.name}\n  - Company Name: ${publisher.companyName}\n  - Email Address: ${user.email}\n  - Status: PENDING admin approval\n\nPlease log in to approve this partner's website inventory.\n\nLink: https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main/`);
+        console.log(`Body:\nA new publisher has self-registered on the Rollinhead Dashboard.\n\nPublisher Profile Details:\n  - Contact Name: ${user.name}\n  - Company Name: ${publisher.companyName}\n  - Email Address: ${user.email}\n  - Status: PENDING admin approval\n\nPlease log in to approve this partner's website inventory.\n\nLink: https://dash.rollinhead.com/`);
       }
       console.log('------------------------------------------------------------\n');
       return;
@@ -221,7 +221,7 @@ export class AuthService {
           from,
           to: user.email,
           subject: '[Rollinhead] Welcome to the Publisher Dashboard!',
-          text: `Hi ${user.name},\n\nWelcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.\n\nHere are your login credentials:\n  - Dashboard URL: https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main/\n  - Email Address: ${user.email}\n  - Temporary Password: ${passwordPlainText}\n\nYou can change your password at any time in your Account Settings panel.\n\nBest regards,\nRollinhead Ops Team`,
+          text: `Hi ${user.name},\n\nWelcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.\n\nHere are your login credentials:\n  - Dashboard URL: https://dash.rollinhead.com/\n  - Email Address: ${user.email}\n  - Temporary Password: ${passwordPlainText}\n\nYou can change your password at any time in your Account Settings panel.\n\nBest regards,\nRollinhead Ops Team`,
           html: `
             <div style="font-family: sans-serif; padding: 25px; max-width: 600px; border: 1px solid #e9ecef; border-radius: 8px; color: #333;">
               <h2 style="color: #e50914; margin-top: 0; font-weight: 900; tracking-tight: -0.05em;">ROLLINHEAD</h2>
@@ -229,7 +229,7 @@ export class AuthService {
               <p>Welcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.</p>
               <div style="background-color: #f8f9fa; border-left: 4px solid #e50914; padding: 15px; margin: 20px 0; border-radius: 4px;">
                 <h4 style="margin: 0 0 10px 0; color: #0f1115; font-size: 14px; font-weight: bold;">Your Login Credentials</h4>
-                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Dashboard Link:</strong> <a href="https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main/" style="color: #e50914; text-decoration: none;">Access Dashboard</a></p>
+                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Dashboard Link:</strong> <a href="https://dash.rollinhead.com/" style="color: #e50914; text-decoration: none;">Access Dashboard</a></p>
                 <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Email Address:</strong> ${user.email}</p>
                 <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Temporary Password:</strong> <code style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-family: monospace;">${passwordPlainText}</code></p>
               </div>
@@ -246,7 +246,7 @@ export class AuthService {
           from,
           to: 'contact@rollinhead.com',
           subject: 'New publisher reachout',
-          text: `Hi Ops Team,\n\nA new publisher has self-registered on the Rollinhead Dashboard.\n\nPublisher Profile Details:\n  - Contact Name: ${user.name}\n  - Company Name: ${publisher.companyName}\n  - Email Address: ${user.email}\n  - Status: PENDING admin approval\n\nPlease log in to approve this partner's website inventory.\n\nLink: https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main/`,
+          text: `Hi Ops Team,\n\nA new publisher has self-registered on the Rollinhead Dashboard.\n\nPublisher Profile Details:\n  - Contact Name: ${user.name}\n  - Company Name: ${publisher.companyName}\n  - Email Address: ${user.email}\n  - Status: PENDING admin approval\n\nPlease log in to approve this partner's website inventory.\n\nLink: https://dash.rollinhead.com/`,
           html: `
             <div style="font-family: sans-serif; padding: 25px; max-width: 600px; border: 1px solid #e9ecef; border-radius: 8px; color: #333;">
               <h2 style="color: #000000; margin-top: 0; font-weight: 900; tracking-tight: -0.05em;">ROLLINHEAD OPS</h2>
@@ -260,7 +260,7 @@ export class AuthService {
                 <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Approval Status:</strong> <span style="color: #facc15; font-weight: bold;">PENDING</span></p>
               </div>
               <p style="font-size: 13px; color: #495057; line-height: 1.5;">Please log in to the administrator portal to review their inventory and approve their account.</p>
-              <p style="margin-top: 25px;"><a href="https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main/" style="background-color: #e50914; color: white; padding: 10px 18px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block;">Access Admin Panel</a></p>
+              <p style="margin-top: 25px;"><a href="https://dash.rollinhead.com/" style="background-color: #e50914; color: white; padding: 10px 18px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block;">Access Admin Panel</a></p>
             </div>
           `,
         });
