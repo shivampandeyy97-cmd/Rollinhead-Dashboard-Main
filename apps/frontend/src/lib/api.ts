@@ -2,17 +2,32 @@
 // Rollinhead Dashboard — API Fetch Client
 // =============================================================================
 
-// Resolve API URL dynamically based on current environment
-const isLocal = typeof window !== 'undefined' && 
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+// Resolve API URL dynamically based on environment or manual user preference
+export const getApiUrl = () => {
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  }
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (isLocal ? 'http://localhost:4000/api' : 'https://rollinhead-backend.onrender.com/api');
+  // Allow manual toggle via localStorage preference
+  const pref = localStorage.getItem('rollinhead_api_pref');
+  if (pref === 'cloud') {
+    return 'https://rollinhead-backend.onrender.com/api';
+  }
+  if (pref === 'local') {
+    return 'http://localhost:4000/api';
+  }
 
+  // Default automatic detection based on current domain
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  return process.env.NEXT_PUBLIC_API_URL || 
+    (isLocal ? 'http://localhost:4000/api' : 'https://rollinhead-backend.onrender.com/api');
+};
+
+export const API_URL = getApiUrl();
 
 class ApiClient {
   private async request(path: string, options: RequestInit = {}) {
-    const url = `${API_URL}${path}`;
+    const url = `${getApiUrl()}${path}`;
     
     // Default headers
     const headers = new Headers(options.headers || {});

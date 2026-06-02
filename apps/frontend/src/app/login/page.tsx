@@ -19,6 +19,19 @@ export default function LoginPage() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [apiPref, setApiPref] = useState('local');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedPref = localStorage.getItem('rollinhead_api_pref');
+      if (storedPref) {
+        setApiPref(storedPref);
+      } else {
+        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        setApiPref(isLocalHost ? 'local' : 'cloud');
+      }
+    }
+  }, []);
 
   // Form states
   const [email, setEmail] = useState('');
@@ -260,6 +273,41 @@ export default function LoginPage() {
           >
             {isRegisterMode ? 'Access Existing Account' : 'Signup'}
           </button>
+        </div>
+
+        {/* Connection Preference Selector */}
+        <div className="mt-4 pt-4 border-t border-slate-50 flex flex-col items-center space-y-1.5">
+          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">API Connection Link</span>
+          <div className="inline-flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shadow-inner">
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem('rollinhead_api_pref', 'local');
+                window.location.reload();
+              }}
+              className={`px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                apiPref === 'local' 
+                  ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50' 
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              Local (4000)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem('rollinhead_api_pref', 'cloud');
+                window.location.reload();
+              }}
+              className={`px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                apiPref === 'cloud' 
+                  ? 'bg-[#e50914] text-white shadow-sm' 
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              Live Render
+            </button>
+          </div>
         </div>
 
       </div>
