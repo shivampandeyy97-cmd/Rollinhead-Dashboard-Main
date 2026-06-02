@@ -7,8 +7,8 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  // Set basePath for GitHub Pages subpath deployment on GitHub Actions
-  basePath: isGithubActions ? '/Rollinhead-Dashboard-Main' : '',
+  // Subpath is not required since custom domain dash.rollinhead.com maps to root
+  basePath: '',
 };
 
 export default nextConfig;
