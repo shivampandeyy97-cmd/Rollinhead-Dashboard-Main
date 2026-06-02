@@ -170,6 +170,7 @@ export class AuthController {
     const from = process.env.SMTP_FROM || 'Rollinhead Adtech <no-reply@rollinhead.com>';
 
     const isSmtpConfigured = !!(host && smtpUser && smtpPass);
+    const dbStatus = await this.authService.getDbStatus();
 
     if (!isSmtpConfigured) {
       return {
@@ -180,6 +181,7 @@ export class AuthController {
         hasPass: !!smtpPass,
         from,
         error: 'SMTP host, user, or pass environment variables are missing.',
+        db: dbStatus,
       };
     }
 
@@ -207,6 +209,7 @@ export class AuthController {
         hasPass: !!smtpPass,
         from,
         connection: 'SUCCESSFUL',
+        db: dbStatus,
       };
     } catch (err: any) {
       return {
@@ -218,6 +221,7 @@ export class AuthController {
         from,
         connection: 'FAILED',
         error: err.message || String(err),
+        db: dbStatus,
       };
     }
   }

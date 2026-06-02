@@ -440,4 +440,32 @@ export class AuthService {
     });
     return { message: 'Production database successfully purged!' };
   }
+
+  async getDbStatus() {
+    try {
+      const usersCount = await this.prisma.user.count();
+      const publisherCount = await this.prisma.publisher.count();
+      const auditLogs = await this.prisma.auditLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          action: true,
+          entity: true,
+          newValue: true,
+          createdAt: true,
+        },
+      });
+      return {
+        usersCount,
+        publisherCount,
+        auditLogs,
+      };
+    } catch (e: any) {
+      return {
+        error: e.message || String(e),
+      };
+    }
+  }
 }
+
