@@ -246,9 +246,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
               {/* In-app Notification Dropdown Panel */}
               {notifDropdownOpen && (
-                <div className="absolute right-0 mt-3 w-80 glass glass-red rounded-xl shadow-2xl py-2 z-50 animate-fade-in text-left">
-                  <div className="px-4 py-2 border-b border-[#1a1c20] flex items-center justify-between">
-                    <span className="text-xs font-black uppercase text-gray-400 tracking-wider">Announcements</span>
+                <div className="absolute right-0 mt-3 w-80 bg-white border border-slate-100 rounded-xl shadow-xl py-2 z-50 animate-fade-in text-left">
+                  <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                    <span className="text-xs font-black uppercase text-slate-800 tracking-wider">Announcements</span>
                     {unreadCount > 0 && (
                       <button 
                         onClick={markAllNotifRead}
@@ -258,9 +258,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </button>
                     )}
                   </div>
-                  <div className="max-h-64 overflow-y-auto divide-y divide-[#16181c]">
+                  <div className="max-h-64 overflow-y-auto divide-y divide-slate-50">
                     {notifications.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-xs text-gray-500">
+                      <div className="px-4 py-8 text-center text-xs text-slate-400">
                         No new notifications.
                       </div>
                     ) : (
@@ -270,18 +270,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           className={`p-4 transition-all relative ${!notif.isRead ? 'bg-red-50/20' : ''}`}
                         >
                           <div className="flex justify-between items-start">
-                            <h4 className="text-xs font-bold text-slate-900 pr-4">{notif.title}</h4>
+                            <h4 className="text-xs font-bold text-slate-950 pr-4">{notif.title}</h4>
                             {!notif.isRead && (
                               <button 
                                 onClick={() => markNotifRead(notif.id)}
-                                className="text-slate-500 hover:text-[#e50914] transition-all cursor-pointer"
+                                className="text-slate-400 hover:text-[#e50914] transition-all cursor-pointer"
                               >
                                 <Check className="h-3 w-3" />
                               </button>
                             )}
                           </div>
                           <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">{notif.message}</p>
-                          <span className="text-[9px] text-gray-600 block mt-2">
+                          <span className="text-[9px] text-slate-400 font-semibold block mt-2">
                             {new Date(notif.createdAt).toLocaleDateString()}
                           </span>
                         </div>
@@ -299,16 +299,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   setProfileDropdownOpen(!profileDropdownOpen);
                   setNotifDropdownOpen(false);
                 }}
-                className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-[#16181c] transition-all cursor-pointer focus:outline-none"
+                className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-slate-50 transition-all cursor-pointer focus:outline-none"
               >
                 <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-[#e50914] to-[#ff5757] flex items-center justify-center text-xs font-bold">
                   {user.name.charAt(0)}
                 </div>
                 <ChevronDown className="h-3.5 w-3.5 text-gray-500" />
               </button>
-
+ 
               {profileDropdownOpen && (
-                <div className="absolute right-0 mt-3 w-48 glass rounded-lg shadow-2xl py-1.5 z-50 animate-fade-in">
+                <div className="absolute right-0 mt-3 w-48 bg-white border border-slate-100 rounded-lg shadow-xl py-1.5 z-50 animate-fade-in">
                   <div className="px-4 py-2 border-b border-slate-100">
                     <p className="text-xs text-slate-500">Signed in as</p>
                     <p className="text-xs font-bold text-slate-900 truncate">{user.email}</p>

@@ -1,5 +1,3 @@
-'use开client';
-// Wait, 'use client' (in english)
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
