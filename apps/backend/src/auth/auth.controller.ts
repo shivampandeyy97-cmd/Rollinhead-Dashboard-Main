@@ -160,4 +160,66 @@ export class AuthController {
     }
     return this.authService.purgeProductionDatabase(req.user.id, password);
   }
+
+  @Get('smtp-status')
+  async checkSmtpStatus() {
+    const host = process.env.SMTP_HOST;
+    const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    const from = process.env.SMTP_FROM || 'Rollinhead Adtech <no-reply@rollinhead.com>';
+
+    const isSmtpConfigured = !!(host && smtpUser && smtpPass);
+
+    if (!isSmtpConfigured) {
+      return {
+        configured: false,
+        host: host || null,
+        port,
+        hasUser: !!smtpUser,
+        hasPass: !!smtpPass,
+        from,
+        error: 'SMTP host, user, or pass environment variables are missing.',
+      };
+    }
+
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+        tls: {
+          rejectUnauthorized: false,
+        },
+      });
+
+      await transporter.verify();
+      return {
+        configured: true,
+        host,
+        port,
+        hasUser: !!smtpUser,
+        hasPass: !!smtpPass,
+        from,
+        connection: 'SUCCESSFUL',
+      };
+    } catch (err: any) {
+      return {
+        configured: true,
+        host,
+        port,
+        hasUser: !!smtpUser,
+        hasPass: !!smtpPass,
+        from,
+        connection: 'FAILED',
+        error: err.message || String(err),
+      };
+    }
+  }
 }
+

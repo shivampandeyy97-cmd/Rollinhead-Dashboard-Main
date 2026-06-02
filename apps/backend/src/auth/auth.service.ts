@@ -200,6 +200,22 @@ export class AuthService {
         console.log(`Body:\nA new publisher has self-registered on the Rollinhead Dashboard.\n\nPublisher Profile Details:\n  - Contact Name: ${user.name}\n  - Company Name: ${publisher.companyName}\n  - Email Address: ${user.email}\n  - Status: PENDING admin approval\n\nPlease log in to approve this partner's website inventory.\n\nLink: https://dash.rollinhead.com/`);
       }
       console.log('------------------------------------------------------------\n');
+
+      // Log skip in AuditLog database table
+      await this.prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'EMAIL_SKIPPED_SMTP_NOT_CONFIGURED',
+          entity: 'Publisher',
+          entityId: publisher.id,
+          newValue: {
+            recipient: isAdminOnboarded ? user.email : 'contact@rollinhead.com',
+            type: isAdminOnboarded ? 'ONBOARDING' : 'REACHOUT',
+            reason: 'SMTP_HOST, SMTP_USER, or SMTP_PASS environment variables are missing.',
+          },
+        },
+      }).catch((e) => console.error('Failed to log email skip to DB:', e));
+
       return;
     }
 
@@ -212,6 +228,10 @@ export class AuthService {
         auth: {
           user: smtpUser,
           pass: smtpPass,
+        },
+        tls: {
+          // Do not fail on self-signed or invalid certs (common in Docker/cloud environments)
+          rejectUnauthorized: false,
         },
       });
 
@@ -240,6 +260,18 @@ export class AuthService {
             </div>
           `,
         });
+
+        // Log success
+        await this.prisma.auditLog.create({
+          data: {
+            userId: user.id,
+            action: 'EMAIL_ONBOARDING_SENT_SUCCESS',
+            entity: 'Publisher',
+            entityId: publisher.id,
+            newValue: { recipient: user.email },
+          },
+        }).catch((e) => console.error('Failed to log email success to DB:', e));
+
       } else {
         // Send alert email to contact@rollinhead.com
         await transporter.sendMail({
@@ -264,9 +296,34 @@ export class AuthService {
             </div>
           `,
         });
+
+        // Log success
+        await this.prisma.auditLog.create({
+          data: {
+            userId: user.id,
+            action: 'EMAIL_REACHOUT_SENT_SUCCESS',
+            entity: 'Publisher',
+            entityId: publisher.id,
+            newValue: { recipient: 'contact@rollinhead.com' },
+          },
+        }).catch((e) => console.error('Failed to log email success to DB:', e));
       }
     } catch (err) {
       console.error('Failed to send SMTP emails inside registerPublisher:', err);
+      // Log failure in AuditLog
+      await this.prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'EMAIL_SENT_FAILURE',
+          entity: 'Publisher',
+          entityId: publisher.id,
+          newValue: {
+            recipient: isAdminOnboarded ? user.email : 'contact@rollinhead.com',
+            error: err.message || String(err),
+            type: isAdminOnboarded ? 'ONBOARDING' : 'REACHOUT',
+          },
+        },
+      }).catch((e) => console.error('Failed to log email failure to DB:', e));
     }
   }
 

@@ -86,6 +86,21 @@ export class NotificationsService {
       console.log(
         '------------------------------------------------------------\n',
       );
+
+      // Log warning in DB
+      await this.prisma.auditLog.create({
+        data: {
+          userId: notification.createdBy,
+          action: 'EMAIL_ANNOUNCEMENT_SKIPPED_SMTP_NOT_CONFIGURED',
+          entity: 'Notification',
+          entityId: notification.id,
+          newValue: {
+            reason: 'SMTP_HOST, SMTP_USER, or SMTP_PASS environment variables are missing.',
+            recipientsCount: users.length,
+          },
+        },
+      }).catch((e) => console.error('Failed to log email skip to DB:', e));
+
       return;
     }
 
@@ -98,6 +113,10 @@ export class NotificationsService {
         auth: {
           user,
           pass,
+        },
+        tls: {
+          // Do not fail on self-signed or invalid certs (common in Docker/cloud environments)
+          rejectUnauthorized: false,
         },
       });
 
@@ -123,8 +142,34 @@ export class NotificationsService {
               </div>
             `,
           });
+
+          // Log success in AuditLog
+          await this.prisma.auditLog.create({
+            data: {
+              userId: notification.createdBy,
+              action: 'EMAIL_ANNOUNCEMENT_SENT_SUCCESS',
+              entity: 'Notification',
+              entityId: notification.id,
+              newValue: { recipient: u.email },
+            },
+          }).catch((e) => console.error('Failed to log email success to DB:', e));
+
         } catch (mailErr) {
           console.error(`Failed to send email to ${u.email}:`, mailErr);
+
+          // Log failure in AuditLog
+          await this.prisma.auditLog.create({
+            data: {
+              userId: notification.createdBy,
+              action: 'EMAIL_ANNOUNCEMENT_SENT_FAILURE',
+              entity: 'Notification',
+              entityId: notification.id,
+              newValue: {
+                recipient: u.email,
+                error: mailErr.message || String(mailErr),
+              },
+            },
+          }).catch((e) => console.error('Failed to log email failure to DB:', e));
         }
       });
 
@@ -134,6 +179,19 @@ export class NotificationsService {
         'Nodemailer SMTP Transporter setup failed:',
         transporterErr,
       );
+      // Log transporter failure in AuditLog
+      await this.prisma.auditLog.create({
+        data: {
+          userId: notification.createdBy,
+          action: 'EMAIL_TRANSPORTER_SETUP_FAILURE',
+          entity: 'Notification',
+          entityId: notification.id,
+          newValue: {
+            error: transporterErr.message || String(transporterErr),
+            recipientsCount: users.length,
+          },
+        },
+      }).catch((e) => console.error('Failed to log transporter failure to DB:', e));
     }
   }
 

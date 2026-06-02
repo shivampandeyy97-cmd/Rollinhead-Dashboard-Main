@@ -1,0 +1,30 @@
+2026-05-28 20:56:41.744 IST [63590] LOG:  starting PostgreSQL 16.14 (Homebrew) on aarch64-apple-darwin25.5.0, compiled by Apple clang version 21.0.0 (clang-2100.1.1.101), 64-bit
+2026-05-28 20:56:41.746 IST [63590] LOG:  listening on IPv6 address "::1", port 5432
+2026-05-28 20:56:41.746 IST [63590] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2026-05-28 20:56:41.746 IST [63590] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2026-05-28 20:56:41.749 IST [63593] LOG:  database system was shut down at 2026-05-28 20:56:27 IST
+2026-05-28 20:56:41.754 IST [63590] LOG:  database system is ready to accept connections
+2026-05-28 21:01:41.751 IST [63591] LOG:  checkpoint starting: time
+2026-05-28 21:03:27.167 IST [63591] LOG:  checkpoint complete: wrote 1043 buffers (6.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=105.399 s, sync=0.011 s, total=105.417 s; sync files=352, longest=0.001 s, average=0.001 s; distance=5087 kB, estimate=5087 kB; lsn=0/1A157C8, redo lsn=0/1A15790
+2026-05-28 21:06:41.173 IST [63591] LOG:  checkpoint starting: time
+2026-05-28 21:06:41.801 IST [63591] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.621 s, sync=0.001 s, total=0.631 s; sync files=6, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=4578 kB; lsn=0/1A15B88, redo lsn=0/1A15B50
+2026-05-28 21:16:41.808 IST [63591] LOG:  checkpoint starting: time
+2026-05-28 21:16:42.636 IST [63591] LOG:  checkpoint complete: wrote 9 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.819 s, sync=0.002 s, total=0.830 s; sync files=9, longest=0.001 s, average=0.001 s; distance=2 kB, estimate=4120 kB; lsn=0/1A16600, redo lsn=0/1A165C8
+2026-05-28 21:21:41.636 IST [63591] LOG:  checkpoint starting: time
+2026-05-28 21:21:42.262 IST [63591] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.616 s, sync=0.002 s, total=0.627 s; sync files=7, longest=0.001 s, average=0.001 s; distance=3 kB, estimate=3709 kB; lsn=0/1A172E0, redo lsn=0/1A172A8
+2026-05-28 21:36:41.266 IST [63591] LOG:  checkpoint starting: time
+2026-05-28 21:36:41.895 IST [63591] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.620 s, sync=0.002 s, total=0.631 s; sync files=7, longest=0.001 s, average=0.001 s; distance=3 kB, estimate=3338 kB; lsn=0/1A17F98, redo lsn=0/1A17F60
+2026-05-31 01:46:42.178 IST [63590] LOG:  received smart shutdown request
+2026-05-31 01:46:42.183 IST [63590] LOG:  background worker "logical replication launcher" (PID 63596) exited with exit code 1
+2026-05-31 01:46:42.184 IST [63591] LOG:  shutting down
+2026-05-31 01:46:42.186 IST [63591] LOG:  checkpoint starting: shutdown immediate
+2026-05-31 01:46:42.225 IST [63591] LOG:  checkpoint complete: wrote 0 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.029 s, sync=0.001 s, total=0.040 s; sync files=0, longest=0.000 s, average=0.000 s; distance=0 kB, estimate=3004 kB; lsn=0/1A18060, redo lsn=0/1A18060
+2026-05-31 01:46:42.240 IST [63590] LOG:  database system is shut down
+2026-06-01 11:32:33.546 IST [7383] LOG:  starting PostgreSQL 16.14 (Homebrew) on aarch64-apple-darwin25.5.0, compiled by Apple clang version 21.0.0 (clang-2100.1.1.101), 64-bit
+2026-06-01 11:32:33.548 IST [7383] LOG:  listening on IPv6 address "::1", port 5432
+2026-06-01 11:32:33.548 IST [7383] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2026-06-01 11:32:33.549 IST [7383] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2026-06-01 11:32:33.555 IST [7387] LOG:  database system was shut down at 2026-05-31 01:46:42 IST
+2026-06-01 11:32:33.560 IST [7383] LOG:  database system is ready to accept connections
+2026-06-01 11:37:33.558 IST [7385] LOG:  checkpoint starting: time
+2026-06-01 11:37:34.175 IST [7385] LOG:  checkpoint complete: wrote 9 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.610 s, sync=0.002 s, total=0.618 s; sync files=5, longest=0.001 s, average=0.001 s; distance=9 kB, estimate=9 kB; lsn=0/1A1A4B8, redo lsn=0/1A1A480
