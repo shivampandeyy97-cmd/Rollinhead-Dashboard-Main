@@ -17,7 +17,7 @@ export default function InventoryPage() {
   });
 
   const isPublisher = user?.role === 'PUBLISHER';
-  const useMock = !isPublisher && (error || !websites || websites.length === 0);
+  const useMock = false;
 
   // Mock data fallbacks
   const mockWebsites = [

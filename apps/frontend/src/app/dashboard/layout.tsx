@@ -111,11 +111,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Sidebar Header */}
           <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100">
             <div className="flex items-center space-x-2">
-              <span className="text-xl font-black tracking-tighter text-slate-900">
-                ROLLIN<span className="text-[#e50914]">HEAD</span>
+              <span className="text-xl font-extrabold tracking-tight text-slate-950">
+                Rollinhead<span className="text-[#e50914]">.</span>
               </span>
               <span className="text-[9px] bg-[#e50914] text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
-                Partner
+                {isAdmin ? 'Admin' : 'Partner'}
               </span>
             </div>
             <button lg-hidden="true" onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-slate-900 cursor-pointer">

@@ -58,11 +58,6 @@ export class AuthController {
       paymentDetails,
       paymentCycle,
     } = body;
-    if (!email || !name || !password || !companyName) {
-      throw new BadRequestException(
-        'Email, Name, Password, and Company Name are required',
-      );
-    }
 
     // Try to extract and decode JWT to check if requester is an admin
     let requesterRole: string | undefined = undefined;
@@ -77,6 +72,14 @@ export class AuthController {
       }
     } catch (e) {
       // Ignore token verification errors (means it is an unauthenticated guest signup)
+    }
+
+    const isAdminOnboard = requesterRole === 'ADMIN' || requesterRole === 'SUPER_ADMIN';
+
+    if (!email || !name || (!isAdminOnboard && !password) || !companyName) {
+      throw new BadRequestException(
+        'Email, Name, ' + (isAdminOnboard ? '' : 'Password, ') + 'and Company Name are required',
+      );
     }
 
     return this.authService.registerPublisher(

@@ -125,8 +125,8 @@ export default function LoginPage() {
         {/* Branding Logo */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center space-x-2">
-            <span className="text-3xl font-black tracking-tighter text-slate-900">
-              ROLLIN<span className="text-[#e50914]">HEAD</span>
+            <span className="text-3xl font-extrabold tracking-tight text-slate-950">
+              Rollinhead<span className="text-[#e50914]">.</span>
             </span>
           </div>
           <p className="mt-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center">

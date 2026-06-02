@@ -69,17 +69,7 @@ export default function OverviewPage() {
   const isPublisher = user?.role === 'PUBLISHER';
 
   // Only admins get mock fallback previews when DB has no data
-  const useMock = !isPublisher && (
-    overviewErr || 
-    performanceErr || 
-    !overview || 
-    !performance || 
-    !Array.isArray(performance) || 
-    performance.length === 0 ||
-    !breakdown ||
-    !Array.isArray(breakdown) ||
-    breakdown.length === 0
-  );
+  const useMock = false;
 
   const mockOverview = {
     netRevenue: { current: 12480.50, changePercent: 12.4 },
