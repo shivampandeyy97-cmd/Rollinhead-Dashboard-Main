@@ -8,6 +8,7 @@ import {
   Req,
   Res,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -145,5 +146,14 @@ export class AuthController {
       oldPass: oldPassword,
       newPass: newPassword,
     });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('purge-db')
+  async purgeDatabase(@Req() req: any) {
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
+      throw new ForbiddenException('Only administrators can purge the database');
+    }
+    return this.authService.purgeProductionDatabase();
   }
 }

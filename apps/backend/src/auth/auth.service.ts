@@ -350,4 +350,24 @@ export class AuthService {
       return { message: 'Profile updated successfully' };
     });
   }
+
+  async purgeProductionDatabase() {
+    await this.prisma.notificationRead.deleteMany({});
+    await this.prisma.notification.deleteMany({});
+    await this.prisma.auditLog.deleteMany({});
+    await this.prisma.uploadLog.deleteMany({});
+    await this.prisma.revenueReport.deleteMany({});
+    await this.prisma.tag.deleteMany({});
+    await this.prisma.website.deleteMany({});
+    await this.prisma.revenueShareConfig.deleteMany({});
+    await this.prisma.publisher.deleteMany({});
+    await this.prisma.user.deleteMany({
+      where: {
+        email: {
+          not: 'admin@rollinhead.com'
+        }
+      }
+    });
+    return { message: 'Production database successfully purged!' };
+  }
 }

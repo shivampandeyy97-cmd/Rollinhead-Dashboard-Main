@@ -117,6 +117,28 @@ export default function AdminPublishersPage() {
     }
   });
 
+  const purgeDbMutation = useMutation({
+    mutationFn: () => api.post('/auth/purge-db', {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-publishers'] });
+      setFeedback('Live production database cleared successfully!');
+      setTimeout(() => {
+        setFeedback(null);
+        window.location.reload();
+      }, 2000);
+    },
+    onError: (err: any) => {
+      setFeedback(err.message || 'Failed to purge database.');
+      setTimeout(() => setFeedback(null), 4000);
+    }
+  });
+
+  const handlePurgeDb = () => {
+    if (window.confirm('⚠️ WARNING: Are you sure you want to permanently delete ALL publisher accounts, websites, ad tags, historical reports, and log records from the live cloud database? This action is irreversible. Only your admin account will remain.')) {
+      purgeDbMutation.mutate();
+    }
+  };
+
   const clearForms = () => {
     setEmail('');
     setName('');
@@ -178,16 +200,28 @@ export default function AdminPublishersPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            clearForms();
-            setActiveModal('create');
-          }}
-          className="flex items-center justify-center space-x-2 bg-gradient-to-r from-[#e50914] to-[#ff5757] hover:from-[#c20811] hover:to-[#e04545] text-white px-5 py-3 rounded-lg text-xs font-black transition-all cursor-pointer shadow-lg shadow-[#e5091422] hover:shadow-[#e5091444] self-start md:self-auto animate-fade-in"
-        >
-          <UserPlus className="h-4 w-4" />
-          <span>Onboard New Publisher</span>
-        </button>
+        <div className="flex items-center gap-3 self-start md:self-auto">
+          {/* Reset Production DB */}
+          <button
+            onClick={handlePurgeDb}
+            disabled={purgeDbMutation.isPending}
+            className="flex items-center justify-center space-x-2 bg-white border border-red-200 hover:bg-red-50 text-[#e50914] px-4 py-3 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm disabled:opacity-50 animate-fade-in"
+            title="Wipe all data tables in production cloud"
+          >
+            <span>{purgeDbMutation.isPending ? 'Purging DB...' : 'Reset Live Database'}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              clearForms();
+              setActiveModal('create');
+            }}
+            className="flex items-center justify-center space-x-2 bg-gradient-to-r from-[#e50914] to-[#ff5757] hover:from-[#c20811] hover:to-[#e04545] text-white px-4 py-3 rounded-lg text-xs font-black transition-all cursor-pointer shadow-lg shadow-[#e5091422] hover:shadow-[#e5091444] animate-fade-in"
+          >
+            <UserPlus className="h-4 w-4" />
+            <span>Onboard New Publisher</span>
+          </button>
+        </div>
       </div>
 
       {feedback && (
