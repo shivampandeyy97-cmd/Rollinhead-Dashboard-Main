@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: rollinhead-backend
+    runtime: docker
+    dockerfilePath: apps/backend/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: postgresql://rollinhead:rollinhead_dev_2026@db.olrrdwcffjthunvuuish.supabase.co:5432/postgres?schema=public
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://shivampandeyy97-cmd.github.io
