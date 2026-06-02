@@ -96,7 +96,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const adminLinks = [
     { name: 'Publishers Directory', href: '/dashboard/admin/publishers', icon: Users },
     { name: 'CSV Demand Ingestion', href: '/dashboard/admin/uploads', icon: UploadCloud },
-    { name: 'Network Analytics', href: '/dashboard/admin/analytics', icon: PieChart },
   ];
 
   return (

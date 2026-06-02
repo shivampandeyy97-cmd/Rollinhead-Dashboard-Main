@@ -46,7 +46,7 @@ export default function ReportsPage() {
   });
 
   const isPublisher = user?.role === 'PUBLISHER';
-  const useMock = !isPublisher && (error || !breakdown || !Array.isArray(breakdown) || breakdown.length === 0);
+  const useMock = false;
 
   // Mock fallbacks
   const mockBreakdown = [
