@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import { UserRole, PublisherStatus, PaymentCycle } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class AuthService {
@@ -204,7 +205,6 @@ export class AuthService {
 
     // 2. Send actual SMTP emails using nodemailer
     try {
-      const nodemailer = require('nodemailer');
       const transporter = nodemailer.createTransport({
         host,
         port,
@@ -351,7 +351,20 @@ export class AuthService {
     });
   }
 
-  async purgeProductionDatabase() {
+  async purgeProductionDatabase(userId: string, pass: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Administrator account not found');
+    }
+
+    const isMatch = await bcrypt.compare(pass, user.passwordHash);
+    if (!isMatch) {
+      throw new UnauthorizedException('Incorrect administrator password');
+    }
+
     await this.prisma.notificationRead.deleteMany({});
     await this.prisma.notification.deleteMany({});
     await this.prisma.auditLog.deleteMany({});

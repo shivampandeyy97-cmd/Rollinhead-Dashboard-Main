@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UserRole, NotificationType, DeliveryType } from '@prisma/client';
+import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class NotificationsService {
@@ -90,7 +91,6 @@ export class NotificationsService {
 
     // 4. Send actual SMTP emails using nodemailer
     try {
-      const nodemailer = require('nodemailer');
       const transporter = nodemailer.createTransport({
         host,
         port,

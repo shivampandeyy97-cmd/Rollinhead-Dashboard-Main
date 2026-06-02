@@ -1,14 +1,41 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../lib/api';
 import { useAuthStore } from '../../../stores/auth';
-import { Loader2, Globe, Tag, Copy, Check, ShieldAlert } from 'lucide-react';
+import { Loader2, Globe, Tag, Copy, Check, ShieldAlert, X, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 
 export default function InventoryPage() {
   const user = useAuthStore((state) => state.user);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const queryClient = useQueryClient();
+  const [selectedSite, setSelectedSite] = useState<any>(null);
+  const [placementId, setPlacementId] = useState('');
+  const [tagType, setTagType] = useState('DISPLAY');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  const addTagMutation = useMutation({
+    mutationFn: (data: { websiteId: string; placementId: string; tagType: string }) => 
+      api.post(`/websites/${data.websiteId}/tags`, {
+        placementId: data.placementId,
+        tagType: data.tagType,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['websites-inventory'] });
+      setFeedback('Ad placement tag added successfully!');
+      setIsModalOpen(false);
+      setPlacementId('');
+      setTagType('DISPLAY');
+      setTimeout(() => setFeedback(null), 3000);
+    },
+    onError: (err: any) => {
+      setFeedback(err.message || 'Failed to add tag placement.');
+      setTimeout(() => setFeedback(null), 4000);
+    }
+  });
 
   const { data: websites, isLoading, error } = useQuery({
     queryKey: ['websites-inventory'],
@@ -80,14 +107,30 @@ export default function InventoryPage() {
         </div>
       )}
 
+      {feedback && (
+        <div className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm font-bold flex items-center space-x-2 animate-fade-in shadow-sm mb-6">
+          <CheckCircle2 className="h-5 w-5" />
+          <span>{feedback}</span>
+        </div>
+      )}
+
       {/* Websites Grid */}
       {currentWebsites.length === 0 ? (
         <div className="bg-white border border-slate-100 rounded-xl p-12 text-center space-y-4 shadow-sm">
           <Globe className="h-12 w-12 mx-auto text-slate-300 animate-pulse" />
           <h3 className="text-base font-black text-slate-900">No Registered Websites</h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-            Your publisher account does not have any active websites or ad placement tags configured yet. 
-            Please reach out to support at <span className="text-[#e50914] font-bold">contact@rollinhead.com</span> to link your domains and generate tags!
+            {isPublisher ? (
+              <>
+                Your publisher account does not have any active websites or ad placement tags configured yet. 
+                Please reach out to support at <span className="text-[#e50914] font-bold">contact@rollinhead.com</span> to link your domains and generate tags!
+              </>
+            ) : (
+              <>
+                There are no registered website domains or ad placement tags in the network directory yet. 
+                You can add websites for publishers inside the <span className="text-[#e50914] font-bold">Publisher Directory</span> dashboard!
+              </>
+            )}
           </p>
         </div>
       ) : (
@@ -103,9 +146,16 @@ export default function InventoryPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-slate-900 tracking-tight">{site.domain}</h3>
-                    <span className="inline-block mt-1 text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-bold tracking-wider uppercase">
-                      {site.category}
-                    </span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="inline-block text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-bold tracking-wider uppercase">
+                        {site.category}
+                      </span>
+                      {site.publisher?.companyName && (
+                        <span className="inline-block text-[9px] bg-red-50 text-[#e50914] px-2 py-0.5 rounded border border-red-100/30 font-bold">
+                          {site.publisher.companyName}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
@@ -120,7 +170,23 @@ export default function InventoryPage() {
 
               {/* Ad Tags Placements */}
               <div className="p-6 space-y-6">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Placements</h4>
+                <div className="flex justify-between items-center">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Placements</h4>
+                  {!isPublisher && (
+                    <button
+                      onClick={() => {
+                        setSelectedSite(site);
+                        setPlacementId(`pb-${site.domain.split('.')[0]}-${Math.random().toString(36).substring(2, 6)}`);
+                        setTagType('DISPLAY');
+                        setIsModalOpen(true);
+                      }}
+                      className="text-[10px] bg-red-50 hover:bg-red-100 text-[#e50914] border border-red-100/30 px-2.5 py-1.5 rounded font-black tracking-wider uppercase transition-all cursor-pointer flex items-center gap-1"
+                      title="Add Ad Placement Tag"
+                    >
+                      <span>+ Add Ad Tag</span>
+                    </button>
+                  )}
+                </div>
                 
                 {site.tags.length === 0 ? (
                   <div className="text-center py-6 text-xs text-slate-400 font-medium">
@@ -166,6 +232,74 @@ export default function InventoryPage() {
 
             </div>
           ))}
+        </div>
+      )}
+
+      {/* --- Add Tag Modal --- */}
+      {isModalOpen && selectedSite && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+          <div className="w-full max-w-sm bg-white border border-slate-100 rounded-2xl p-6 relative shadow-2xl">
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h3 className="text-base font-black text-slate-955 tracking-tight mb-4 flex items-center space-x-2">
+              <Tag className="h-5 w-5 text-[#e50914]" />
+              <span>Create Ad Placement Tag</span>
+            </h3>
+            <p className="text-[11px] text-slate-400 font-semibold mb-4">
+              Website: <span className="text-slate-950 font-bold">{selectedSite.domain}</span>
+            </p>
+            
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              addTagMutation.mutate({ websiteId: selectedSite.id, placementId, tagType });
+            }} className="space-y-4 text-left">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Placement ID</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="pb-domain-placement"
+                  value={placementId}
+                  onChange={(e) => setPlacementId(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-red-200 rounded-lg py-2.5 px-3 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Tag Placement Type</label>
+                <select
+                  value={tagType}
+                  onChange={(e) => setTagType(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-red-200 rounded-lg py-2.5 px-3 text-xs cursor-pointer"
+                >
+                  <option value="DISPLAY">Display Banner</option>
+                  <option value="VIDEO">Outstream Video</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg text-xs tracking-wider uppercase cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addTagMutation.isPending}
+                  className="w-1/2 bg-[#e50914] hover:bg-[#c20811] text-white font-bold py-2.5 rounded-lg text-xs tracking-wider uppercase cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {addTagMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  <span>{addTagMutation.isPending ? 'Creating...' : 'Create Tag'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

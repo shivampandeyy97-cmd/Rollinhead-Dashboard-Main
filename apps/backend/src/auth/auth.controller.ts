@@ -150,10 +150,14 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('purge-db')
-  async purgeDatabase(@Req() req: any) {
+  async purgeDatabase(@Req() req: any, @Body() body: any) {
     if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
       throw new ForbiddenException('Only administrators can purge the database');
     }
-    return this.authService.purgeProductionDatabase();
+    const { password } = body;
+    if (!password) {
+      throw new BadRequestException('Administrator password is required to reset the database');
+    }
+    return this.authService.purgeProductionDatabase(req.user.id, password);
   }
 }
