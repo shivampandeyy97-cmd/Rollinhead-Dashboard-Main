@@ -179,7 +179,7 @@ export class AuthService {
     const smtpPass = process.env.SMTP_PASS;
     const from = 'Rollinhead <contact@rollinhead.com>';
     const isAdminOnboarded = requesterRole === 'ADMIN' || requesterRole === 'SUPER_ADMIN';
-    const frontendUrl = (process.env.FRONTEND_URL || 'https://shivampandeyy97-cmd.github.io/Rollinhead-Dashboard-Main').replace(/\/$/, '');
+    const frontendUrl = (process.env.FRONTEND_URL || 'https://dash.rollinhead.com').replace(/\/$/, '');
 
     // 1. Fallback: Log email details cleanly if API key isn't set
     if (!smtpPass) {
