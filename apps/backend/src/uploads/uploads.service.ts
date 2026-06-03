@@ -97,21 +97,37 @@ export class UploadsService {
     let rowsFailed = 0;
     const errors: string[] = [];
 
-    // Pre-cache websites and their publisher configurations to optimize performance
-    const websites = await this.prisma.website.findMany({
-      include: {
-        publisher: {
-          include: {
-            revenueShareConfigs: {
-              orderBy: { effectiveFrom: 'desc' },
-            },
+    // Pre-cache publishers and websites to optimize performance and enforce strict validations
+    const [publishers, websites] = await Promise.all([
+      this.prisma.publisher.findMany({
+        include: {
+          revenueShareConfigs: {
+            orderBy: { effectiveFrom: 'desc' },
           },
+          user: true,
         },
-      },
+      }),
+      this.prisma.website.findMany(),
+    ]);
+
+    // Build Maps for O(1) lookups
+    const publisherMap = new Map<string, any>();
+    publishers.forEach((p) => {
+      if (p.companyName) {
+        publisherMap.set(p.companyName.toLowerCase().trim(), p);
+      }
+      if (p.contactEmail) {
+        publisherMap.set(p.contactEmail.toLowerCase().trim(), p);
+      }
+      if (p.user?.name) {
+        publisherMap.set(p.user.name.toLowerCase().trim(), p);
+      }
     });
 
     const websiteMap = new Map<string, any>();
-    websites.forEach((w) => websiteMap.set(w.domain.toLowerCase().trim(), w));
+    websites.forEach((w) => {
+      websiteMap.set(w.domain.toLowerCase().trim(), w);
+    });
 
     const reportsToInsert: any[] = [];
 
@@ -120,33 +136,39 @@ export class UploadsService {
       const rowNum = i + 2; // Row number in spreadsheet (1-indexed + header)
 
       try {
-        const domain = (row.domain || row.Domain || '').toLowerCase().trim();
-        const dateStr = row.date || row.Date || '';
-        const country = (row.country || row.Country || 'USA')
-          .toUpperCase()
-          .trim();
-        const deviceStr = (row.device || row.Device || 'DESKTOP')
-          .toUpperCase()
-          .trim();
-
-        const impressions = parseInt(
-          row.impressions || row.Impressions || '0',
-          10,
-        );
-        const pageviews = parseInt(row.pageviews || row.Pageviews || '0', 10);
-        const clicks = parseInt(row.clicks || row.Clicks || '0', 10);
-        const grossRevenue = parseFloat(
-          row.gross_revenue || row.GrossRevenue || row.revenue || '0',
-        );
-
-        // Validation
-        if (!domain || !dateStr) {
-          throw new Error(`Missing required fields: domain or date`);
+        // Normalize CSV keys to ignore spacing/case differences
+        const cleanRow: any = {};
+        for (const key of Object.keys(row)) {
+          const cleanKey = key.trim().replace(/\s+/g, '').toLowerCase();
+          cleanRow[cleanKey] = row[key];
         }
 
-        const website = websiteMap.get(domain);
+        const dateStr = cleanRow['date'] || '';
+        const publisherVal = cleanRow['publisher'] || '';
+        const websiteVal = cleanRow['website'] || '';
+        const revenueStr = cleanRow['revenue'] || '';
+        const impressionsStr = cleanRow['impressions'] || '';
+
+        // Validation
+        if (!dateStr || !publisherVal || !websiteVal || !revenueStr || !impressionsStr) {
+          throw new Error(`Missing required fields. Row must contain Date, Publisher, Website, Revenue, and Impressions.`);
+        }
+
+        const publisher = publisherMap.get(publisherVal.toLowerCase().trim());
+        if (!publisher) {
+          throw new Error(`Publisher '${publisherVal}' is not registered in our system`);
+        }
+
+        const website = websiteMap.get(websiteVal.toLowerCase().trim());
         if (!website) {
-          throw new Error(`Domain '${domain}' is not registered in our system`);
+          throw new Error(`Website domain '${websiteVal}' is not registered in our system`);
+        }
+
+        // Strict validation: Website must belong to the Publisher
+        if (website.publisherId !== publisher.id) {
+          throw new Error(
+            `Website domain '${websiteVal}' belongs to another publisher and cannot be uploaded under Publisher '${publisherVal}'`
+          );
         }
 
         const reportDate = new Date(dateStr);
@@ -154,18 +176,20 @@ export class UploadsService {
           throw new Error(`Invalid date format: '${dateStr}'`);
         }
 
+        const impressions = parseInt(impressionsStr, 10);
+        const grossRevenue = parseFloat(revenueStr);
+
         if (isNaN(impressions) || isNaN(grossRevenue)) {
-          throw new Error(`Impressions and Gross Revenue must be numbers`);
+          throw new Error(`Impressions and Revenue must be numeric values`);
         }
 
-        // Resolve device type
-        let device: DeviceType = DeviceType.DESKTOP;
-        if (deviceStr === 'MOBILE') device = DeviceType.MOBILE;
-        if (deviceStr === 'TABLET') device = DeviceType.TABLET;
+        if (impressions < 0 || grossRevenue < 0) {
+          throw new Error(`Impressions and Revenue must be non-negative`);
+        }
 
-        // Find active revenue shareconfig for that date
-        const configs = website.publisher.revenueShareConfigs;
-        let activeShare = 80.0; // Default fallback
+        // Find active revenue share config for the publisher for that date
+        const configs = publisher.revenueShareConfigs;
+        let activeShare = 80.0; // Default fallback to 80% share to publisher (20% margin)
 
         for (const config of configs) {
           const effectiveFrom = new Date(config.effectiveFrom);
@@ -182,7 +206,7 @@ export class UploadsService {
           }
         }
 
-        // Apply share config
+        // Apply share config (e.g. if margin is 30%, activeShare is 70% of grossRevenue)
         const netRevenue = grossRevenue * (activeShare / 100);
         const grossCpm =
           impressions > 0 ? (grossRevenue / impressions) * 1000 : 0;
@@ -192,11 +216,11 @@ export class UploadsService {
           websiteId: website.id,
           uploadLogId: logId,
           reportDate,
-          country,
-          device,
+          country: 'USA',
+          device: DeviceType.DESKTOP,
           impressions: BigInt(impressions),
-          pageviews: BigInt(pageviews),
-          clicks: BigInt(clicks),
+          pageviews: BigInt(0),
+          clicks: BigInt(0),
           grossRevenue,
           netRevenue,
           grossCpm,
