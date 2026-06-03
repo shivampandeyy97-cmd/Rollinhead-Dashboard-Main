@@ -16,12 +16,14 @@ export default function InventoryPage() {
   const [tagType, setTagType] = useState('DISPLAY');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [code, setCode] = useState('');
 
   const addTagMutation = useMutation({
-    mutationFn: (data: { websiteId: string; placementId: string; tagType: string }) => 
+    mutationFn: (data: { websiteId: string; placementId: string; tagType: string; config?: any }) => 
       api.post(`/websites/${data.websiteId}/tags`, {
         placementId: data.placementId,
         tagType: data.tagType,
+        config: data.config,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['websites-inventory'] });
@@ -29,6 +31,7 @@ export default function InventoryPage() {
       setIsModalOpen(false);
       setPlacementId('');
       setTagType('DISPLAY');
+      setCode('');
       setTimeout(() => setFeedback(null), 3000);
     },
     onError: (err: any) => {
@@ -71,13 +74,13 @@ export default function InventoryPage() {
 
   const currentWebsites = useMock ? mockWebsites : (Array.isArray(websites) ? websites : []);
 
-  const handleCopyCode = (placementId: string) => {
-    const codeSnippet = `<!-- Rollinhead Ad Placement Tag -->
-<div id="${placementId}"></div>
-<script async src="https://cdn.rollinhead.com/tag.js" data-placement="${placementId}"></script>`;
+  const handleCopyCode = (tag: any) => {
+    const codeSnippet = tag.config?.code || `<!-- Rollinhead Ad Placement Tag -->
+<div id="${tag.placementId}"></div>
+<script async src="https://cdn.rollinhead.com/tag.js" data-placement="${tag.placementId}"></script>`;
     
     navigator.clipboard.writeText(codeSnippet);
-    setCopiedId(placementId);
+    setCopiedId(tag.placementId);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -229,13 +232,13 @@ export default function InventoryPage() {
                       {/* Embedding Snippet */}
                       <div className="bg-slate-50 border border-slate-200/60 rounded-lg p-3 relative group">
                         <pre className="text-[10px] text-slate-600 font-mono overflow-x-auto whitespace-pre-wrap select-all leading-relaxed">
-                          {`<!-- Rollinhead Placement Tag -->
+                          {tag.config?.code || `<!-- Rollinhead Placement Tag -->
 <div id="${tag.placementId}"></div>
 <script async src="https://cdn.rollinhead.com/tag.js" data-placement="${tag.placementId}"></script>`}
                         </pre>
                         
                         <button
-                          onClick={() => handleCopyCode(tag.placementId)}
+                          onClick={() => handleCopyCode(tag)}
                           className="absolute top-2 right-2 p-1.5 rounded bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all cursor-pointer focus:outline-none"
                         >
                           {copiedId === tag.placementId ? (
@@ -275,7 +278,7 @@ export default function InventoryPage() {
             
             <form onSubmit={(e) => {
               e.preventDefault();
-              addTagMutation.mutate({ websiteId: selectedSite.id, placementId, tagType });
+              addTagMutation.mutate({ websiteId: selectedSite.id, placementId, tagType, config: { code } });
             }} className="space-y-4 text-left">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Placement ID</label>
@@ -299,6 +302,18 @@ export default function InventoryPage() {
                   <option value="DISPLAY">Display Banner</option>
                   <option value="VIDEO">Outstream Video</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Embed Code (Custom Tag HTML/JS)</label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="<script>...</script>"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-red-200 rounded-lg py-2 px-3 text-xs font-mono"
+                />
               </div>
 
               <div className="flex gap-3 pt-2">

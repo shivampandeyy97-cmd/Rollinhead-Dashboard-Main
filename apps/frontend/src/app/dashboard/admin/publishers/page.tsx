@@ -48,6 +48,7 @@ export default function AdminPublishersPage() {
   const [selectedSite, setSelectedSite] = useState<any>(null);
   const [placementId, setPlacementId] = useState('');
   const [tagType, setTagType] = useState('DISPLAY');
+  const [code, setCode] = useState('');
 
   // Mutations
   const createMutation = useMutation({
@@ -123,10 +124,11 @@ export default function AdminPublishersPage() {
   });
 
   const addTagMutation = useMutation({
-    mutationFn: (data: { websiteId: string; placementId: string; tagType: string }) => 
+    mutationFn: (data: { websiteId: string; placementId: string; tagType: string; config?: any }) => 
       api.post(`/websites/${data.websiteId}/tags`, {
         placementId: data.placementId,
         tagType: data.tagType,
+        config: data.config,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-publishers'] });
@@ -135,6 +137,7 @@ export default function AdminPublishersPage() {
       setActiveModal(null);
       setPlacementId('');
       setTagType('DISPLAY');
+      setCode('');
     },
     onError: (err: any) => {
       setFeedback(err.message || 'Failed to add tag placement.');
@@ -146,6 +149,7 @@ export default function AdminPublishersPage() {
     setSelectedSite(site);
     setPlacementId(`pb-${site.domain.split('.')[0]}-${Math.random().toString(36).substring(2, 6)}`);
     setTagType('DISPLAY');
+    setCode('');
     setActiveModal('add-tag' as any);
   };
 
@@ -834,7 +838,7 @@ export default function AdminPublishersPage() {
             
             <form onSubmit={(e) => {
               e.preventDefault();
-              addTagMutation.mutate({ websiteId: selectedSite.id, placementId, tagType });
+              addTagMutation.mutate({ websiteId: selectedSite.id, placementId, tagType, config: { code } });
             }} className="space-y-4 text-left">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Placement ID</label>
@@ -858,6 +862,18 @@ export default function AdminPublishersPage() {
                   <option value="DISPLAY">Display Banner</option>
                   <option value="VIDEO">Outstream Video</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Embed Code (Custom Tag HTML/JS)</label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="<script>...</script>"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-red-200 rounded-lg py-2 px-3 text-xs font-mono"
+                />
               </div>
 
               <div className="flex gap-3 pt-2">
