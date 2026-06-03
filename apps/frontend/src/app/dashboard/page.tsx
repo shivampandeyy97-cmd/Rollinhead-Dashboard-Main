@@ -13,7 +13,10 @@ import {
   Activity, 
   Loader2, 
   Globe,
-  AlertCircle
+  AlertCircle,
+  Filter,
+  Calendar,
+  Laptop
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -27,59 +30,123 @@ import {
 
 export default function OverviewPage() {
   const user = useAuthStore((state) => state.user);
-  const [days, setDays] = useState('30');
+  const isPublisher = user?.role === 'PUBLISHER';
 
-  // Calculates date range
-  const getDates = () => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - parseInt(days, 10));
-    return {
-      startDate: start.toISOString().split('T')[0],
-      endDate: end.toISOString().split('T')[0],
-    };
+  // Filters State
+  const [datePreset, setDatePreset] = useState('30'); // '7' | '30' | '90' | 'custom'
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  
+  const [websiteId, setWebsiteId] = useState('');
+  const [publisherId, setPublisherId] = useState('');
+  const [country, setCountry] = useState('');
+  const [device, setDevice] = useState('');
+  const [chartMetric, setChartMetric] = useState('netRevenue');
+
+  // Query websites for filter dropdown
+  const { data: websites } = useQuery({
+    queryKey: ['websites-filter-list'],
+    queryFn: () => api.get('/websites'),
+    retry: false,
+  });
+
+  // Query publishers for filter dropdown (Admin only)
+  const { data: publishers } = useQuery({
+    queryKey: ['publishers-filter-list'],
+    queryFn: () => api.get('/publishers'),
+    enabled: !isPublisher,
+    retry: false,
+  });
+
+  // Date handlers
+  const handlePresetChange = (preset: string) => {
+    setDatePreset(preset);
+    if (preset !== 'custom') {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - parseInt(preset, 10));
+      setStartDate(start.toISOString().split('T')[0]);
+      setEndDate(end.toISOString().split('T')[0]);
+    }
   };
 
-  const { startDate, endDate } = getDates();
+  const handleStartDateChange = (val: string) => {
+    setStartDate(val);
+    setDatePreset('custom');
+  };
+
+  const handleEndDateChange = (val: string) => {
+    setEndDate(val);
+    setDatePreset('custom');
+  };
+
+  const resetFilters = () => {
+    setDatePreset('30');
+    const d = new Date();
+    const start = new Date();
+    start.setDate(d.getDate() - 30);
+    setStartDate(start.toISOString().split('T')[0]);
+    setEndDate(d.toISOString().split('T')[0]);
+    setWebsiteId('');
+    setPublisherId('');
+    setCountry('');
+    setDevice('');
+  };
 
   // Queries overview stats
-  const { data: overview, isLoading: overviewLoading, error: overviewErr } = useQuery({
-    queryKey: ['overview', days, startDate, endDate],
-    queryFn: () => api.get(`/reports/overview?startDate=${startDate}&endDate=${endDate}`),
+  const { data: overview, isLoading: overviewLoading } = useQuery({
+    queryKey: ['overview', startDate, endDate, websiteId, publisherId, country, device],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      if (startDate) q.append('startDate', startDate);
+      if (endDate) q.append('endDate', endDate);
+      if (websiteId) q.append('websiteId', websiteId);
+      if (publisherId) q.append('publisherId', publisherId);
+      if (country) q.append('country', country);
+      if (device) q.append('device', device);
+      return api.get(`/reports/overview?${q.toString()}`);
+    },
     retry: false,
   });
 
   // Queries chart performance
-  const { data: performance, isLoading: performanceLoading, error: performanceErr } = useQuery({
-    queryKey: ['performance', days, startDate, endDate],
-    queryFn: () => api.get(`/reports/performance?startDate=${startDate}&endDate=${endDate}`),
+  const { data: performance, isLoading: performanceLoading } = useQuery({
+    queryKey: ['performance', startDate, endDate, websiteId, publisherId, country, device],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      if (startDate) q.append('startDate', startDate);
+      if (endDate) q.append('endDate', endDate);
+      if (websiteId) q.append('websiteId', websiteId);
+      if (publisherId) q.append('publisherId', publisherId);
+      if (country) q.append('country', country);
+      if (device) q.append('device', device);
+      return api.get(`/reports/performance?${q.toString()}`);
+    },
     retry: false,
   });
 
   // Queries website breakdown for the table
   const { data: breakdown, isLoading: breakdownLoading } = useQuery({
-    queryKey: ['breakdown', days, startDate, endDate],
-    queryFn: () => api.get(`/reports/breakdown?startDate=${startDate}&endDate=${endDate}&groupBy=website`),
+    queryKey: ['breakdown', startDate, endDate, websiteId, publisherId, country, device],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      if (startDate) q.append('startDate', startDate);
+      if (endDate) q.append('endDate', endDate);
+      if (websiteId) q.append('websiteId', websiteId);
+      if (publisherId) q.append('publisherId', publisherId);
+      if (country) q.append('country', country);
+      if (device) q.append('device', device);
+      q.append('groupBy', 'website');
+      return api.get(`/reports/breakdown?${q.toString()}`);
+    },
     retry: false,
   });
 
   const loading = overviewLoading || performanceLoading || breakdownLoading;
-
-  // --- Publisher check & Mock data fallbacks ---
-  const isPublisher = user?.role === 'PUBLISHER';
-
-  // Only admins get mock fallback previews when DB has no data
-  const useMock = false;
-
-  const mockOverview = {
-    netRevenue: { current: 12480.50, changePercent: 12.4 },
-    impressions: { current: 5240000, changePercent: 8.2 },
-    clicks: { current: 84300, changePercent: 14.1 },
-    netCpm: { current: 2.38, changePercent: 4.2 },
-    grossRevenue: { current: 15600.60, changePercent: 11.8 },
-    margin: { current: 3120.10, changePercent: 9.6 },
-    marginPercent: { current: 20.0, changePercent: 0 },
-  };
 
   const zeroOverview = {
     netRevenue: { current: 0.00, changePercent: 0.0 },
@@ -91,33 +158,25 @@ export default function OverviewPage() {
     marginPercent: { current: 0.0, changePercent: 0.0 },
   };
 
-  const mockPerformance = Array.from({ length: parseInt(days, 10) }).map((_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (parseInt(days, 10) - 1 - i));
-    const dayStr = date.toISOString().split('T')[0];
-    
-    const baseVal = 300 + Math.sin(i * 0.5) * 80 + Math.random() * 50;
-    const grossRev = baseVal * 1.25;
-    const netRev = baseVal * 1.0; 
-    
-    return {
-      date: dayStr,
-      impressions: Math.floor(baseVal * 1000),
-      clicks: Math.floor(baseVal * 15),
-      netRevenue: netRev,
-      grossRevenue: grossRev,
-      margin: grossRev - netRev,
-    };
-  });
+  const currentOverview = overview || zeroOverview;
+  const currentPerformance = Array.isArray(performance) ? performance : [];
+  const currentBreakdown = Array.isArray(breakdown) ? breakdown : [];
 
-  const mockBreakdown = [
-    { dimension: 'techblog.com', impressions: 3200000, clicks: 54000, netRevenue: 7680.00, netCpm: 2.40 },
-    { dimension: 'sportshub.net', impressions: 2040000, clicks: 30300, netRevenue: 4800.50, netCpm: 2.35 },
+  // Chart Metric Options
+  const metricsOptions = [
+    { label: 'Net Revenue', value: 'netRevenue' },
+    { label: 'Impressions', value: 'impressions' },
+    { label: 'Net CPM', value: 'netCpm' },
+    { label: 'Clicks', value: 'clicks' },
   ];
 
-  const currentOverview = useMock ? mockOverview : (overview || zeroOverview);
-  const currentPerformance = useMock ? mockPerformance : (Array.isArray(performance) ? performance : []);
-  const currentBreakdown = useMock ? mockBreakdown : (Array.isArray(breakdown) ? breakdown : []);
+  if (!isPublisher) {
+    metricsOptions.push(
+      { label: 'Gross Revenue', value: 'grossRevenue' },
+      { label: 'Margin', value: 'margin' },
+      { label: 'Gross CPM', value: 'grossCpm' }
+    );
+  }
 
   if (loading) {
     return (
@@ -137,31 +196,124 @@ export default function OverviewPage() {
             Welcome Back, <span className="text-[#e50914]">{user?.name}</span>
           </h2>
           <p className="text-xs text-slate-500 font-semibold tracking-wide mt-1">
-            {useMock 
-              ? '✨ Showing live demonstration preview data (Database starting up)' 
-              : 'Real-time publisher network performance monitor'}
+            Real-time analytics and performance dashboard.
           </p>
         </div>
+      </div>
 
-        {/* Date Filters */}
-        <div className="flex items-center space-x-1 bg-slate-100 border border-slate-200/50 p-1 rounded-xl self-start md:self-auto">
-          {[
-            { label: '7 Days', val: '7' },
-            { label: '30 Days', val: '30' },
-            { label: '90 Days', val: '90' },
-          ].map((d) => (
-            <button
-              key={d.val}
-              onClick={() => setDays(d.val)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                days === d.val 
-                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/20' 
-                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-              }`}
+      {/* Advanced Filter Box */}
+      <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-sm space-y-4">
+        <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+          <span className="flex items-center text-xs font-black uppercase text-[#e50914] tracking-wider space-x-1.5">
+            <Filter className="h-3.5 w-3.5" />
+            <span>Dashboard Filters</span>
+          </span>
+          <button
+            onClick={resetFilters}
+            className="text-[10px] font-bold text-slate-400 hover:text-[#e50914] transition-all cursor-pointer"
+          >
+            Reset Filters
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          
+          {/* Preset Selector */}
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Date Range Preset</label>
+            <select
+              value={datePreset}
+              onChange={(e) => handlePresetChange(e.target.value)}
+              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all cursor-pointer shadow-sm"
             >
-              {d.label}
-            </button>
-          ))}
+              <option value="7">Last 7 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="90">Last 90 Days</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+
+          {/* Start Date */}
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Start Date</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => handleStartDateChange(e.target.value)}
+              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all shadow-sm"
+            />
+          </div>
+
+          {/* End Date */}
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">End Date</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => handleEndDateChange(e.target.value)}
+              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all shadow-sm"
+            />
+          </div>
+
+          {/* Website Selection */}
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Website</label>
+            <select
+              value={websiteId}
+              onChange={(e) => setWebsiteId(e.target.value)}
+              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all cursor-pointer shadow-sm"
+            >
+              <option value="">All Websites</option>
+              {websites?.map((w: any) => (
+                <option key={w.id} value={w.id}>{w.domain}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Publisher Selection (Admin only) */}
+          {!isPublisher && (
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Publisher</label>
+              <select
+                value={publisherId}
+                onChange={(e) => setPublisherId(e.target.value)}
+                className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all cursor-pointer shadow-sm"
+              >
+                <option value="">All Publishers</option>
+                {publishers?.map((p: any) => (
+                  <option key={p.id} value={p.id}>{p.companyName || p.user?.name || p.contactEmail}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Device Selection */}
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Device Type</label>
+            <select
+              value={device}
+              onChange={(e) => setDevice(e.target.value)}
+              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all cursor-pointer shadow-sm"
+            >
+              <option value="">All Devices</option>
+              <option value="DESKTOP">Desktop</option>
+              <option value="MOBILE">Mobile</option>
+              <option value="TABLET">Tablet</option>
+            </select>
+          </div>
+
+          {/* Country Selection */}
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Country Code</label>
+            <input
+              type="text"
+              placeholder="e.g. USA, GBR"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all uppercase placeholder-slate-400 shadow-sm"
+            />
+          </div>
+
         </div>
       </div>
 
@@ -288,7 +440,7 @@ export default function OverviewPage() {
 
       {/* Admin Extra Metrics Section */}
       {!isPublisher && currentOverview.grossRevenue && (
-        <div className="bg-white border border-[#e50914]/10 p-6 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-6 shadow-sm">
+        <div className="bg-white border border-[#e50914]/10 p-6 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-6 shadow-sm animate-fade-in">
           <div className="border-r border-slate-100 pr-6 last:border-0 last:pr-0">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gross Revenue (AdNetwork)</span>
             <h4 className="text-xl font-black mt-1 text-slate-900">
@@ -312,9 +464,28 @@ export default function OverviewPage() {
 
       {/* Charts Section */}
       <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
-        <div className="mb-6">
-          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Revenue & Earnings Trend</h3>
-          <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Daily net earnings aggregates</p>
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
+          <div>
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Performance Trend</h3>
+            <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Daily aggregates for the selected metric</p>
+          </div>
+
+          {/* Metric Selector Buttons */}
+          <div className="flex flex-wrap gap-1 bg-slate-100 p-1 border border-slate-200/50 rounded-xl self-start lg:self-auto">
+            {metricsOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setChartMetric(opt.value)}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                  chartMetric === opt.value
+                    ? 'bg-white text-slate-900 shadow-sm border border-slate-200/20'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {currentPerformance.length === 0 ? (
@@ -327,7 +498,7 @@ export default function OverviewPage() {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={currentPerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#e50914" stopOpacity={0.15} />
                     <stop offset="95%" stopColor="#e50914" stopOpacity={0.0} />
                   </linearGradient>
@@ -345,6 +516,13 @@ export default function OverviewPage() {
                 />
                 <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip
+                  formatter={(value: any) => {
+                    const isCurrency = ['netRevenue', 'grossRevenue', 'margin', 'netCpm', 'grossCpm'].includes(chartMetric);
+                    if (isCurrency) {
+                      return [`$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, metricsOptions.find(o => o.value === chartMetric)?.label];
+                    }
+                    return [Number(value).toLocaleString(), metricsOptions.find(o => o.value === chartMetric)?.label];
+                  }}
                   contentStyle={{
                     backgroundColor: '#ffffff',
                     border: '1px solid #e2e8f0',
@@ -356,12 +534,12 @@ export default function OverviewPage() {
                 />
                 <Area 
                   type="monotone" 
-                  dataKey="netRevenue" 
-                  name="Net Earnings ($)" 
+                  dataKey={chartMetric} 
+                  name={metricsOptions.find(o => o.value === chartMetric)?.label} 
                   stroke="#e50914" 
                   strokeWidth={2}
                   fillOpacity={1} 
-                  fill="url(#colorNet)" 
+                  fill="url(#colorMetric)" 
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -382,7 +560,7 @@ export default function OverviewPage() {
                 <th className="px-6 py-3.5">Website</th>
                 <th className="px-6 py-3.5">Impressions</th>
                 <th className="px-6 py-3.5">Clicks</th>
-                <th className="px-6 py-3.5">Est. CPM</th>
+                <th className="px-6 py-3.5">Est. Net CPM</th>
                 <th className="px-6 py-3.5 text-right">Net Revenue</th>
               </tr>
             </thead>
@@ -400,10 +578,10 @@ export default function OverviewPage() {
                       <Globe className="h-3.5 w-3.5 text-slate-400" />
                       <span>{row.dimension}</span>
                     </td>
-                    <td className="px-6 py-4 text-slate-500">{row.impressions.toLocaleString()}</td>
-                    <td className="px-6 py-4 text-slate-500">{row.clicks.toLocaleString()}</td>
-                    <td className="px-6 py-4 text-slate-500">${row.netCpm.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-right text-[#e50914] font-black">${row.netRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="px-6 py-4 text-slate-500">{Number(row.impressions).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-slate-500">{Number(row.clicks).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-slate-500">${Number(row.netCpm || 0).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-right text-[#e50914] font-black">${Number(row.netRevenue).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                   </tr>
                 ))
               )}

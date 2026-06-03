@@ -15,6 +15,9 @@ export class ReportsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('websiteId') websiteId?: string,
+    @Query('publisherId') publisherId?: string,
+    @Query('country') country?: string,
+    @Query('device') device?: string,
   ) {
     return this.reportsService.getOverviewMetrics({
       userId: req.user.id,
@@ -22,6 +25,9 @@ export class ReportsController {
       startDate,
       endDate,
       websiteId,
+      publisherId,
+      country,
+      device,
     });
   }
 
@@ -31,6 +37,9 @@ export class ReportsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('websiteId') websiteId?: string,
+    @Query('publisherId') publisherId?: string,
+    @Query('country') country?: string,
+    @Query('device') device?: string,
   ) {
     return this.reportsService.getPerformanceChart({
       userId: req.user.id,
@@ -38,6 +47,9 @@ export class ReportsController {
       startDate,
       endDate,
       websiteId,
+      publisherId,
+      country,
+      device,
     });
   }
 
@@ -47,6 +59,7 @@ export class ReportsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('websiteId') websiteId?: string,
+    @Query('publisherId') publisherId?: string,
     @Query('country') country?: string,
     @Query('device') device?: string,
     @Query('groupBy') groupBy?: string,
@@ -57,6 +70,7 @@ export class ReportsController {
       startDate,
       endDate,
       websiteId,
+      publisherId,
       country,
       device,
       groupBy,
@@ -70,6 +84,7 @@ export class ReportsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('websiteId') websiteId?: string,
+    @Query('publisherId') publisherId?: string,
     @Query('country') country?: string,
     @Query('device') device?: string,
     @Query('groupBy') groupBy?: string,
@@ -80,6 +95,7 @@ export class ReportsController {
       startDate,
       endDate,
       websiteId,
+      publisherId,
       country,
       device,
       groupBy,

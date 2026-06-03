@@ -21,6 +21,9 @@ export class ReportsService {
     startDate?: string;
     endDate?: string;
     websiteId?: string;
+    publisherId?: string;
+    country?: string;
+    device?: string;
   }) {
     // 1. Resolve date ranges (default past 30 days)
     const end = this.parseDate(params.endDate, new Date());
@@ -58,14 +61,38 @@ export class ReportsService {
         return this.emptyMetrics();
       }
 
-      where.website = { publisherId: publisher.id };
-      prevWhere.website = { publisherId: publisher.id };
+      if (params.websiteId) {
+        const website = await this.prisma.website.findFirst({
+          where: { id: params.websiteId, publisherId: publisher.id },
+        });
+        if (!website) {
+          return this.emptyMetrics();
+        }
+        where.websiteId = params.websiteId;
+        prevWhere.websiteId = params.websiteId;
+      } else {
+        where.website = { publisherId: publisher.id };
+        prevWhere.website = { publisherId: publisher.id };
+      }
+    } else {
+      // Admin role filters
+      if (params.websiteId) {
+        where.websiteId = params.websiteId;
+        prevWhere.websiteId = params.websiteId;
+      } else if (params.publisherId) {
+        where.website = { publisherId: params.publisherId };
+        prevWhere.website = { publisherId: params.publisherId };
+      }
     }
 
-    // Optional website ID filter
-    if (params.websiteId) {
-      where.websiteId = params.websiteId;
-      prevWhere.websiteId = params.websiteId;
+    if (params.country) {
+      where.country = params.country.toUpperCase().trim();
+      prevWhere.country = params.country.toUpperCase().trim();
+    }
+
+    if (params.device) {
+      where.device = params.device as DeviceType;
+      prevWhere.device = params.device as DeviceType;
     }
 
     // 3. Query current and previous period stats
@@ -101,6 +128,9 @@ export class ReportsService {
     startDate?: string;
     endDate?: string;
     websiteId?: string;
+    publisherId?: string;
+    country?: string;
+    device?: string;
   }) {
     const end = this.parseDate(params.endDate, new Date());
     const start = this.parseDate(
@@ -120,11 +150,30 @@ export class ReportsService {
         where: { userId: params.userId },
       });
       if (!publisher) return [];
-      where.website = { publisherId: publisher.id };
+      
+      if (params.websiteId) {
+        const website = await this.prisma.website.findFirst({
+          where: { id: params.websiteId, publisherId: publisher.id },
+        });
+        if (!website) return [];
+        where.websiteId = params.websiteId;
+      } else {
+        where.website = { publisherId: publisher.id };
+      }
+    } else {
+      if (params.websiteId) {
+        where.websiteId = params.websiteId;
+      } else if (params.publisherId) {
+        where.website = { publisherId: params.publisherId };
+      }
     }
 
-    if (params.websiteId) {
-      where.websiteId = params.websiteId;
+    if (params.country) {
+      where.country = params.country.toUpperCase().trim();
+    }
+
+    if (params.device) {
+      where.device = params.device as DeviceType;
     }
 
     // Group by day
@@ -174,6 +223,7 @@ export class ReportsService {
     startDate?: string;
     endDate?: string;
     websiteId?: string;
+    publisherId?: string;
     country?: string;
     device?: string;
     groupBy?: string; // 'date' | 'website' | 'country' | 'device'
@@ -196,14 +246,26 @@ export class ReportsService {
         where: { userId: params.userId },
       });
       if (!publisher) return [];
-      where.website = { publisherId: publisher.id };
+      
+      if (params.websiteId) {
+        const website = await this.prisma.website.findFirst({
+          where: { id: params.websiteId, publisherId: publisher.id },
+        });
+        if (!website) return [];
+        where.websiteId = params.websiteId;
+      } else {
+        where.website = { publisherId: publisher.id };
+      }
+    } else {
+      if (params.websiteId) {
+        where.websiteId = params.websiteId;
+      } else if (params.publisherId) {
+        where.website = { publisherId: params.publisherId };
+      }
     }
 
-    if (params.websiteId) {
-      where.websiteId = params.websiteId;
-    }
     if (params.country) {
-      where.country = params.country;
+      where.country = params.country.toUpperCase().trim();
     }
     if (params.device) {
       where.device = params.device as DeviceType;
