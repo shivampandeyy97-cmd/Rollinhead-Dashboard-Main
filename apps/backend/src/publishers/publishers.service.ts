@@ -28,6 +28,7 @@ export class PublishersService {
             id: true,
             domain: true,
             isActive: true,
+            tags: true,
           },
         },
         revenueShareConfigs: {
@@ -50,7 +51,11 @@ export class PublishersService {
             isActive: true,
           },
         },
-        websites: true,
+        websites: {
+          include: {
+            tags: true,
+          },
+        },
         revenueShareConfigs: {
           orderBy: { effectiveFrom: 'desc' },
         },

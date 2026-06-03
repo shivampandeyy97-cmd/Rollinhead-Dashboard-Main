@@ -145,7 +145,27 @@ export default function InventoryPage() {
                     <Globe className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-slate-900 tracking-tight">{site.domain}</h3>
+                    <div className="flex items-center space-x-1.5">
+                      {/* Web tags badges present in front of name */}
+                      {site.tags && site.tags.length > 0 && (
+                        <div className="flex gap-0.5">
+                          {site.tags.map((t: any) => (
+                            <span
+                              key={t.id}
+                              className={`text-[7px] font-extrabold px-1 rounded uppercase tracking-tighter ${
+                                t.tagType === 'VIDEO'
+                                  ? 'bg-purple-100 text-purple-700 border border-purple-200/35'
+                                  : 'bg-red-50 text-[#e50914] border border-red-100/30'
+                              }`}
+                              title={t.placementId}
+                            >
+                              {t.tagType === 'VIDEO' ? 'Vid' : 'Disp'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <h3 className="text-sm font-black text-slate-900 tracking-tight">{site.domain}</h3>
+                    </div>
                     <div className="flex items-center gap-1.5 mt-1">
                       <span className="inline-block text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-bold tracking-wider uppercase">
                         {site.category}
