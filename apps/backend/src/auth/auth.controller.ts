@@ -169,61 +169,80 @@ export class AuthController {
     const smtpPass = process.env.SMTP_PASS;
     const from = process.env.SMTP_FROM || 'Rollinhead Adtech <no-reply@rollinhead.com>';
 
-    const isSmtpConfigured = !!(host && smtpUser && smtpPass);
     const dbStatus = await this.authService.getDbStatus();
 
-    if (!isSmtpConfigured) {
-      return {
-        configured: false,
+    let resendApiStatus = 'NOT_TESTED';
+    let resendApiError = null;
+
+    if (smtpPass) {
+      try {
+        const response = await fetch('https://api.resend.com/domains', {
+          headers: {
+            'Authorization': `Bearer ${smtpPass}`,
+          },
+        });
+        if (response.ok) {
+          resendApiStatus = 'SUCCESSFUL';
+        } else {
+          const txt = await response.text();
+          resendApiStatus = 'FAILED';
+          resendApiError = `Status ${response.status}: ${txt}`;
+        }
+      } catch (err: any) {
+        resendApiStatus = 'FAILED';
+        resendApiError = err.message || String(err);
+      }
+    } else {
+      resendApiStatus = 'MISSING_API_KEY';
+    }
+
+    let smtpConnection = 'NOT_TESTED';
+    let smtpError = null;
+
+    if (host && smtpUser && smtpPass) {
+      try {
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+          host,
+          port,
+          secure: port === 465,
+          auth: {
+            user: smtpUser,
+            pass: smtpPass,
+          },
+          tls: {
+            rejectUnauthorized: false,
+          },
+          connectionTimeout: 5000,
+        });
+
+        await transporter.verify();
+        smtpConnection = 'SUCCESSFUL';
+      } catch (err: any) {
+        smtpConnection = 'FAILED';
+        smtpError = err.message || String(err);
+      }
+    } else {
+      smtpConnection = 'MISSING_CREDENTIALS';
+    }
+
+    return {
+      resendApi: {
+        status: resendApiStatus,
+        error: resendApiError,
+        hasApiKey: !!smtpPass,
+      },
+      smtp: {
+        connection: smtpConnection,
+        error: smtpError,
         host: host || null,
         port,
         hasUser: !!smtpUser,
         hasPass: !!smtpPass,
         from,
-        error: 'SMTP host, user, or pass environment variables are missing.',
-        db: dbStatus,
-      };
-    }
-
-    try {
-      const nodemailer = require('nodemailer');
-      const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-        tls: {
-          rejectUnauthorized: false,
-        },
-      });
-
-      await transporter.verify();
-      return {
-        configured: true,
-        host,
-        port,
-        hasUser: !!smtpUser,
-        hasPass: !!smtpPass,
-        from,
-        connection: 'SUCCESSFUL',
-        db: dbStatus,
-      };
-    } catch (err: any) {
-      return {
-        configured: true,
-        host,
-        port,
-        hasUser: !!smtpUser,
-        hasPass: !!smtpPass,
-        from,
-        connection: 'FAILED',
-        error: err.message || String(err),
-        db: dbStatus,
-      };
-    }
+      },
+      db: dbStatus,
+    };
   }
 }
 

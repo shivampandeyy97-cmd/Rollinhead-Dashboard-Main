@@ -60,19 +60,12 @@ export class NotificationsService {
     if (users.length === 0) return;
 
     // 2. Fetch credentials from environment
-    const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT
-      ? parseInt(process.env.SMTP_PORT, 10)
-      : 587;
-    const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
     const from =
       process.env.SMTP_FROM || 'Rollinhead Adtech <no-reply@rollinhead.com>';
 
-    const isSmtpConfigured = host && user && pass;
-
     // 3. Fallback: Log email details cleanly if credentials aren't set
-    if (!isSmtpConfigured) {
+    if (!pass) {
       console.log(
         '\n------------------------------------------------------------',
       );
@@ -95,7 +88,7 @@ export class NotificationsService {
           entity: 'Notification',
           entityId: notification.id,
           newValue: {
-            reason: 'SMTP_HOST, SMTP_USER, or SMTP_PASS environment variables are missing.',
+            reason: 'SMTP_PASS (Resend API Key) environment variable is missing.',
             recipientsCount: users.length,
           },
         },
@@ -104,27 +97,18 @@ export class NotificationsService {
       return;
     }
 
-    // 4. Send actual SMTP emails using nodemailer
-    try {
-      const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: {
-          user,
-          pass,
-        },
-        tls: {
-          // Do not fail on self-signed or invalid certs (common in Docker/cloud environments)
-          rejectUnauthorized: false,
-        },
-      });
-
-      const emailPromises = users.map(async (u) => {
-        try {
-          await transporter.sendMail({
+    // 4. Send actual emails using Resend HTTP API
+    const emailPromises = users.map(async (u) => {
+      try {
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${pass}`,
+          },
+          body: JSON.stringify({
             from,
-            to: u.email,
+            to: [u.email],
             subject: `[Rollinhead Announcement] ${notification.title}`,
             text: `Hi ${u.name},\n\nYou have a new notification from the Rollinhead Adtech Platform:\n\n${notification.message}\n\nBest regards,\nRollinhead Ops Team`,
             html: `
@@ -141,58 +125,47 @@ export class NotificationsService {
                 </p>
               </div>
             `,
-          });
+          }),
+        });
 
-          // Log success in AuditLog
-          await this.prisma.auditLog.create({
-            data: {
-              userId: notification.createdBy,
-              action: 'EMAIL_ANNOUNCEMENT_SENT_SUCCESS',
-              entity: 'Notification',
-              entityId: notification.id,
-              newValue: { recipient: u.email },
-            },
-          }).catch((e) => console.error('Failed to log email success to DB:', e));
-
-        } catch (mailErr) {
-          console.error(`Failed to send email to ${u.email}:`, mailErr);
-
-          // Log failure in AuditLog
-          await this.prisma.auditLog.create({
-            data: {
-              userId: notification.createdBy,
-              action: 'EMAIL_ANNOUNCEMENT_SENT_FAILURE',
-              entity: 'Notification',
-              entityId: notification.id,
-              newValue: {
-                recipient: u.email,
-                error: mailErr.message || String(mailErr),
-              },
-            },
-          }).catch((e) => console.error('Failed to log email failure to DB:', e));
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Resend HTTP API returned status ${response.status}: ${errorText}`);
         }
-      });
 
-      await Promise.all(emailPromises);
-    } catch (transporterErr) {
-      console.error(
-        'Nodemailer SMTP Transporter setup failed:',
-        transporterErr,
-      );
-      // Log transporter failure in AuditLog
-      await this.prisma.auditLog.create({
-        data: {
-          userId: notification.createdBy,
-          action: 'EMAIL_TRANSPORTER_SETUP_FAILURE',
-          entity: 'Notification',
-          entityId: notification.id,
-          newValue: {
-            error: transporterErr.message || String(transporterErr),
-            recipientsCount: users.length,
+        const resData = await response.json();
+
+        // Log success in AuditLog
+        await this.prisma.auditLog.create({
+          data: {
+            userId: notification.createdBy,
+            action: 'EMAIL_ANNOUNCEMENT_SENT_SUCCESS',
+            entity: 'Notification',
+            entityId: notification.id,
+            newValue: { recipient: u.email, resendId: resData.id },
           },
-        },
-      }).catch((e) => console.error('Failed to log transporter failure to DB:', e));
-    }
+        }).catch((e) => console.error('Failed to log email success to DB:', e));
+
+      } catch (mailErr: any) {
+        console.error(`Failed to send email to ${u.email}:`, mailErr);
+
+        // Log failure in AuditLog
+        await this.prisma.auditLog.create({
+          data: {
+            userId: notification.createdBy,
+            action: 'EMAIL_ANNOUNCEMENT_SENT_FAILURE',
+            entity: 'Notification',
+            entityId: notification.id,
+            newValue: {
+              recipient: u.email,
+              error: mailErr.message || String(mailErr),
+            },
+          },
+        }).catch((e) => console.error('Failed to log email failure to DB:', e));
+      }
+    });
+
+    await Promise.all(emailPromises);
   }
 
   async findAllForUser(userId: string, role: UserRole) {

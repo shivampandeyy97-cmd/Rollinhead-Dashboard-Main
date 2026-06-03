@@ -176,17 +176,12 @@ export class AuthService {
     passwordPlainText: string,
     requesterRole?: string,
   ) {
-    const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
-    const smtpUser = process.env.SMTP_USER;
     const smtpPass = process.env.SMTP_PASS;
     const from = process.env.SMTP_FROM || 'Rollinhead Adtech <no-reply@rollinhead.com>';
-
-    const isSmtpConfigured = !!(host && smtpUser && smtpPass);
     const isAdminOnboarded = requesterRole === 'ADMIN' || requesterRole === 'SUPER_ADMIN';
 
-    // 1. Fallback: Log email details cleanly if credentials aren't set
-    if (!isSmtpConfigured) {
+    // 1. Fallback: Log email details cleanly if API key isn't set
+    if (!smtpPass) {
       console.log('\n------------------------------------------------------------');
       if (isAdminOnboarded) {
         console.log('📢 [SMTP CONFIG NOT SET] Rollinhead Welcome Onboarding Email');
@@ -211,7 +206,7 @@ export class AuthService {
           newValue: {
             recipient: isAdminOnboarded ? user.email : 'contact@rollinhead.com',
             type: isAdminOnboarded ? 'ONBOARDING' : 'REACHOUT',
-            reason: 'SMTP_HOST, SMTP_USER, or SMTP_PASS environment variables are missing.',
+            reason: 'SMTP_PASS (Resend API Key) environment variable is missing.',
           },
         },
       }).catch((e) => console.error('Failed to log email skip to DB:', e));
@@ -219,97 +214,86 @@ export class AuthService {
       return;
     }
 
-    // 2. Send actual SMTP emails using nodemailer
+    // 2. Send actual emails using Resend HTTP API (bypassing SMTP port blocking)
     try {
-      const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
+      const recipient = isAdminOnboarded ? user.email : 'contact@rollinhead.com';
+      const subject = isAdminOnboarded
+        ? '[Rollinhead] Welcome to the Publisher Dashboard!'
+        : 'New publisher reachout';
+      const text = isAdminOnboarded
+        ? `Hi ${user.name},\n\nWelcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.\n\nHere are your login credentials:\n  - Dashboard URL: https://dash.rollinhead.com/\n  - Email Address: ${user.email}\n  - Temporary Password: ${passwordPlainText}\n\nYou can change your password at any time in your Account Settings panel.\n\nBest regards,\nRollinhead Ops Team`
+        : `Hi Ops Team,\n\nA new publisher has self-registered on the Rollinhead Dashboard.\n\nPublisher Profile Details:\n  - Contact Name: ${user.name}\n  - Company Name: ${publisher.companyName}\n  - Email Address: ${user.email}\n  - Status: PENDING admin approval\n\nPlease log in to approve this partner's website inventory.\n\nLink: https://dash.rollinhead.com/`;
+      
+      const html = isAdminOnboarded
+        ? `
+          <div style="font-family: sans-serif; padding: 25px; max-width: 600px; border: 1px solid #e9ecef; border-radius: 8px; color: #333;">
+            <h2 style="color: #e50914; margin-top: 0; font-weight: 900; tracking-tight: -0.05em;">ROLLINHEAD</h2>
+            <p>Hi <strong>${user.name}</strong>,</p>
+            <p>Welcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.</p>
+            <div style="background-color: #f8f9fa; border-left: 4px solid #e50914; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <h4 style="margin: 0 0 10px 0; color: #0f1115; font-size: 14px; font-weight: bold;">Your Login Credentials</h4>
+              <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Dashboard Link:</strong> <a href="https://dash.rollinhead.com/" style="color: #e50914; text-decoration: none;">Access Dashboard</a></p>
+              <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Email Address:</strong> ${user.email}</p>
+              <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Temporary Password:</strong> <code style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-family: monospace;">${passwordPlainText}</code></p>
+            </div>
+            <p style="font-size: 13px; color: #495057; line-height: 1.5;">You can change this temporary password at any time in your <strong>Account Settings</strong> panel after logging in.</p>
+            <p style="font-size: 11px; color: #6c757d; margin-top: 30px; border-top: 1px solid #e9ecef; padding-top: 15px;">
+              This is an automated operational broadcast from Rollinhead Adtech. Please do not reply directly to this mail.
+            </p>
+          </div>
+        `
+        : `
+          <div style="font-family: sans-serif; padding: 25px; max-width: 600px; border: 1px solid #e9ecef; border-radius: 8px; color: #333;">
+            <h2 style="color: #000000; margin-top: 0; font-weight: 900; tracking-tight: -0.05em;">ROLLINHEAD OPS</h2>
+            <p>Hi Team,</p>
+            <p>A new publisher has self-registered on the Rollinhead Dashboard and is awaiting approval.</p>
+            <div style="background-color: #f8f9fa; border-left: 4px solid #333; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <h4 style="margin: 0 0 10px 0; color: #0f1115; font-size: 14px; font-weight: bold;">New Publisher Details</h4>
+              <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Owner Name:</strong> ${user.name}</p>
+              <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Company Name:</strong> ${publisher.companyName}</p>
+              <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Email Address:</strong> ${user.email}</p>
+              <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Approval Status:</strong> <span style="color: #facc15; font-weight: bold;">PENDING</span></p>
+            </div>
+            <p style="font-size: 13px; color: #495057; line-height: 1.5;">Please log in to the administrator portal to review their inventory and approve their account.</p>
+            <p style="margin-top: 25px;"><a href="https://dash.rollinhead.com/" style="background-color: #e50914; color: white; padding: 10px 18px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block;">Access Admin Panel</a></p>
+          </div>
+        `;
+
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${smtpPass}`,
         },
-        tls: {
-          // Do not fail on self-signed or invalid certs (common in Docker/cloud environments)
-          rejectUnauthorized: false,
-        },
+        body: JSON.stringify({
+          from,
+          to: [recipient],
+          subject,
+          text,
+          html,
+        }),
       });
 
-      if (isAdminOnboarded) {
-        // Send onboarding email to publisher
-        await transporter.sendMail({
-          from,
-          to: user.email,
-          subject: '[Rollinhead] Welcome to the Publisher Dashboard!',
-          text: `Hi ${user.name},\n\nWelcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.\n\nHere are your login credentials:\n  - Dashboard URL: https://dash.rollinhead.com/\n  - Email Address: ${user.email}\n  - Temporary Password: ${passwordPlainText}\n\nYou can change your password at any time in your Account Settings panel.\n\nBest regards,\nRollinhead Ops Team`,
-          html: `
-            <div style="font-family: sans-serif; padding: 25px; max-width: 600px; border: 1px solid #e9ecef; border-radius: 8px; color: #333;">
-              <h2 style="color: #e50914; margin-top: 0; font-weight: 900; tracking-tight: -0.05em;">ROLLINHEAD</h2>
-              <p>Hi <strong>${user.name}</strong>,</p>
-              <p>Welcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.</p>
-              <div style="background-color: #f8f9fa; border-left: 4px solid #e50914; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                <h4 style="margin: 0 0 10px 0; color: #0f1115; font-size: 14px; font-weight: bold;">Your Login Credentials</h4>
-                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Dashboard Link:</strong> <a href="https://dash.rollinhead.com/" style="color: #e50914; text-decoration: none;">Access Dashboard</a></p>
-                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Email Address:</strong> ${user.email}</p>
-                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Temporary Password:</strong> <code style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-family: monospace;">${passwordPlainText}</code></p>
-              </div>
-              <p style="font-size: 13px; color: #495057; line-height: 1.5;">You can change this temporary password at any time in your <strong>Account Settings</strong> panel after logging in.</p>
-              <p style="font-size: 11px; color: #6c757d; margin-top: 30px; border-top: 1px solid #e9ecef; padding-top: 15px;">
-                This is an automated operational broadcast from Rollinhead Adtech. Please do not reply directly to this mail.
-              </p>
-            </div>
-          `,
-        });
-
-        // Log success
-        await this.prisma.auditLog.create({
-          data: {
-            userId: user.id,
-            action: 'EMAIL_ONBOARDING_SENT_SUCCESS',
-            entity: 'Publisher',
-            entityId: publisher.id,
-            newValue: { recipient: user.email },
-          },
-        }).catch((e) => console.error('Failed to log email success to DB:', e));
-
-      } else {
-        // Send alert email to contact@rollinhead.com
-        await transporter.sendMail({
-          from,
-          to: 'contact@rollinhead.com',
-          subject: 'New publisher reachout',
-          text: `Hi Ops Team,\n\nA new publisher has self-registered on the Rollinhead Dashboard.\n\nPublisher Profile Details:\n  - Contact Name: ${user.name}\n  - Company Name: ${publisher.companyName}\n  - Email Address: ${user.email}\n  - Status: PENDING admin approval\n\nPlease log in to approve this partner's website inventory.\n\nLink: https://dash.rollinhead.com/`,
-          html: `
-            <div style="font-family: sans-serif; padding: 25px; max-width: 600px; border: 1px solid #e9ecef; border-radius: 8px; color: #333;">
-              <h2 style="color: #000000; margin-top: 0; font-weight: 900; tracking-tight: -0.05em;">ROLLINHEAD OPS</h2>
-              <p>Hi Team,</p>
-              <p>A new publisher has self-registered on the Rollinhead Dashboard and is awaiting approval.</p>
-              <div style="background-color: #f8f9fa; border-left: 4px solid #333; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                <h4 style="margin: 0 0 10px 0; color: #0f1115; font-size: 14px; font-weight: bold;">New Publisher Details</h4>
-                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Owner Name:</strong> ${user.name}</p>
-                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Company Name:</strong> ${publisher.companyName}</p>
-                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Email Address:</strong> ${user.email}</p>
-                <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Approval Status:</strong> <span style="color: #facc15; font-weight: bold;">PENDING</span></p>
-              </div>
-              <p style="font-size: 13px; color: #495057; line-height: 1.5;">Please log in to the administrator portal to review their inventory and approve their account.</p>
-              <p style="margin-top: 25px;"><a href="https://dash.rollinhead.com/" style="background-color: #e50914; color: white; padding: 10px 18px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block;">Access Admin Panel</a></p>
-            </div>
-          `,
-        });
-
-        // Log success
-        await this.prisma.auditLog.create({
-          data: {
-            userId: user.id,
-            action: 'EMAIL_REACHOUT_SENT_SUCCESS',
-            entity: 'Publisher',
-            entityId: publisher.id,
-            newValue: { recipient: 'contact@rollinhead.com' },
-          },
-        }).catch((e) => console.error('Failed to log email success to DB:', e));
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Resend HTTP API returned status ${response.status}: ${errorText}`);
       }
-    } catch (err) {
-      console.error('Failed to send SMTP emails inside registerPublisher:', err);
+
+      const resData = await response.json();
+
+      // Log success
+      await this.prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: isAdminOnboarded ? 'EMAIL_ONBOARDING_SENT_SUCCESS' : 'EMAIL_REACHOUT_SENT_SUCCESS',
+          entity: 'Publisher',
+          entityId: publisher.id,
+          newValue: { recipient, resendId: resData.id },
+        },
+      }).catch((e) => console.error('Failed to log email success to DB:', e));
+
+    } catch (err: any) {
+      console.error('Failed to send emails via Resend HTTP API:', err);
       // Log failure in AuditLog
       await this.prisma.auditLog.create({
         data: {
