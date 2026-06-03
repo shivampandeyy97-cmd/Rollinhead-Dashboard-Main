@@ -17,21 +17,9 @@ export default function LoginPage() {
 
   // UI state
   const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [apiPref, setApiPref] = useState('local');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedPref = localStorage.getItem('rollinhead_api_pref');
-      if (storedPref) {
-        setApiPref(storedPref);
-      } else {
-        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        setApiPref(isLocalHost ? 'local' : 'cloud');
-      }
-    }
-  }, []);
 
   // Form states
   const [email, setEmail] = useState('');
@@ -114,6 +102,30 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+
+    setLoading(true);
+    setFeedbackMsg(null);
+
+    try {
+      const res = await api.post('/auth/forgot-password', { email });
+      setFeedbackMsg({
+        type: 'success',
+        text: res.message || 'If the email exists in our system, a temporary password has been sent.',
+      });
+      setEmail('');
+    } catch (err: any) {
+      setFeedbackMsg({
+        type: 'error',
+        text: err.message || 'An error occurred. Please try again.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f8f9fa] px-4 py-12 relative overflow-hidden font-sans">
       
@@ -130,9 +142,11 @@ export default function LoginPage() {
             </span>
           </div>
           <p className="mt-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center">
-            {isRegisterMode 
-              ? 'Join as publisher' 
-              : 'Publisher & operations console'}
+            {isForgotPasswordMode
+              ? 'Reset your password'
+              : isRegisterMode 
+                ? 'Join as publisher' 
+                : 'Publisher & operations console'}
           </p>
         </div>
 
@@ -147,86 +161,99 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={isRegisterMode ? handleRegisterSubmit : handleLoginSubmit} className="space-y-4">
-          {/* Registration Fields */}
-          {isRegisterMode && (
-            <>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Name <span className="text-[#e50914]">*</span>
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter your full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] text-slate-900 rounded-lg py-2.5 pl-11 pr-4 text-xs focus:outline-none transition-all placeholder-slate-400 shadow-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Company <span className="text-[#e50914]">*</span>
-                </label>
-                <div className="relative">
-                  <Building2 className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter your company name"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] text-slate-900 rounded-lg py-2.5 pl-11 pr-4 text-xs focus:outline-none transition-all placeholder-slate-400 shadow-sm"
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Common Fields */}
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-              Email Address <span className="text-[#e50914]">*</span>
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
-              <input
-                type="email"
-                required
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] text-slate-900 rounded-lg py-2.5 pl-11 pr-4 text-xs focus:outline-none transition-all placeholder-slate-400 shadow-sm"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-              Password <span className="text-[#e50914]">*</span>
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] text-slate-900 rounded-lg py-2.5 pl-11 pr-4 text-xs focus:outline-none transition-all placeholder-slate-400 shadow-sm"
-              />
-            </div>
-          </div>
-
-          {/* Confirm Password Field */}
-          {isRegisterMode && (
+        {isForgotPasswordMode ? (
+          <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                Confirm Password <span className="text-[#e50914]">*</span>
+                Email Address <span className="text-[#e50914]">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
+                <input
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-white border border-slate-200 focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] text-slate-900 rounded-lg py-2.5 pl-11 pr-4 text-xs focus:outline-none transition-all placeholder-slate-400 shadow-sm"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[#e50914] to-[#ff5757] hover:from-[#c20811] hover:to-[#e04545] disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider flex items-center justify-center transition-all cursor-pointer shadow-md hover:shadow-lg shadow-red-500/10 hover:shadow-red-500/20"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Send Temporary Password'
+              )}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={isRegisterMode ? handleRegisterSubmit : handleLoginSubmit} className="space-y-4">
+            {/* Registration Fields */}
+            {isRegisterMode && (
+              <>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Name <span className="text-[#e50914]">*</span>
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter your full name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-white border border-slate-200 focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] text-slate-900 rounded-lg py-2.5 pl-11 pr-4 text-xs focus:outline-none transition-all placeholder-slate-400 shadow-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Company <span className="text-[#e50914]">*</span>
+                  </label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter your company name"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="w-full bg-white border border-slate-200 focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] text-slate-900 rounded-lg py-2.5 pl-11 pr-4 text-xs focus:outline-none transition-all placeholder-slate-400 shadow-sm"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Common Fields */}
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Email Address <span className="text-[#e50914]">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
+                <input
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-white border border-slate-200 focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] text-slate-900 rounded-lg py-2.5 pl-11 pr-4 text-xs focus:outline-none transition-all placeholder-slate-400 shadow-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Password <span className="text-[#e50914]">*</span>
               </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
@@ -234,80 +261,99 @@ export default function LoginPage() {
                   type="password"
                   required
                   placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-white border border-slate-200 focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] text-slate-900 rounded-lg py-2.5 pl-11 pr-4 text-xs focus:outline-none transition-all placeholder-slate-400 shadow-sm"
                 />
               </div>
+              {!isRegisterMode && (
+                <div className="flex justify-end mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPasswordMode(true);
+                      setFeedbackMsg(null);
+                    }}
+                    className="text-[10px] font-semibold text-slate-400 hover:text-[#e50914] transition-all cursor-pointer focus:outline-none"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-[#e50914] to-[#ff5757] hover:from-[#c20811] hover:to-[#e04545] disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider flex items-center justify-center transition-all cursor-pointer shadow-md hover:shadow-lg shadow-red-500/10 hover:shadow-red-500/20"
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : isRegisterMode ? (
-              'Create Partner Account'
-            ) : (
-              'Access Dashboard'
+            {/* Confirm Password Field */}
+            {isRegisterMode && (
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Confirm Password <span className="text-[#e50914]">*</span>
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full bg-white border border-slate-200 focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] text-slate-900 rounded-lg py-2.5 pl-11 pr-4 text-xs focus:outline-none transition-all placeholder-slate-400 shadow-sm"
+                  />
+                </div>
+              </div>
             )}
-          </button>
-        </form>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[#e50914] to-[#ff5757] hover:from-[#c20811] hover:to-[#e04545] disabled:from-slate-200 disabled:to-slate-300 disabled:text-slate-400 text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider flex items-center justify-center transition-all cursor-pointer shadow-md hover:shadow-lg shadow-red-500/10 hover:shadow-red-500/20"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isRegisterMode ? (
+                'Create Partner Account'
+              ) : (
+                'Access Dashboard'
+              )}
+            </button>
+          </form>
+        )}
 
         {/* Toggle Mode */}
         <div className="mt-6 pt-5 border-t border-slate-100 text-center">
-          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">
-            {isRegisterMode ? 'Already have an account?' : 'Are you a new publisher website partner?'}
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setIsRegisterMode(!isRegisterMode);
-              setFeedbackMsg(null);
-            }}
-            className="mt-2 text-xs font-bold text-[#e50914] hover:text-[#ff5757] transition-all cursor-pointer focus:outline-none"
-          >
-            {isRegisterMode ? 'Access Existing Account' : 'Signup'}
-          </button>
-        </div>
-
-        {/* Connection Preference Selector */}
-        <div className="mt-4 pt-4 border-t border-slate-50 flex flex-col items-center space-y-1.5">
-          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">API Connection Link</span>
-          <div className="inline-flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shadow-inner">
-            <button
-              type="button"
-              onClick={() => {
-                localStorage.setItem('rollinhead_api_pref', 'local');
-                window.location.reload();
-              }}
-              className={`px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                apiPref === 'local' 
-                  ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50' 
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              Local (4000)
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                localStorage.setItem('rollinhead_api_pref', 'cloud');
-                window.location.reload();
-              }}
-              className={`px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                apiPref === 'cloud' 
-                  ? 'bg-[#e50914] text-white shadow-sm' 
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              Live Render
-            </button>
-          </div>
+          {isForgotPasswordMode ? (
+            <>
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">
+                Remembered your password?
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPasswordMode(false);
+                  setFeedbackMsg(null);
+                }}
+                className="mt-2 text-xs font-bold text-[#e50914] hover:text-[#ff5757] transition-all cursor-pointer focus:outline-none"
+              >
+                Access Existing Account
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">
+                {isRegisterMode ? 'Already have an account?' : 'Are you a new publisher website partner?'}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegisterMode(!isRegisterMode);
+                  setFeedbackMsg(null);
+                }}
+                className="mt-2 text-xs font-bold text-[#e50914] hover:text-[#ff5757] transition-all cursor-pointer focus:outline-none"
+              >
+                {isRegisterMode ? 'Access Existing Account' : 'Signup'}
+              </button>
+            </>
+          )}
         </div>
 
       </div>

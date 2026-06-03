@@ -339,6 +339,113 @@ export class AuthService {
     return { message: 'Password updated successfully' };
   }
 
+  async forgotPassword(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // Generic message to avoid user enumeration
+      return { message: 'If the email exists in our system, a temporary password has been sent.' };
+    }
+
+    if (!user.isActive) {
+      // Inactive user security
+      return { message: 'If the email exists in our system, a temporary password has been sent.' };
+    }
+
+    // Generate secure temporary password
+    const tempPassword = 'rh_' + Math.random().toString(36).substring(2, 10);
+    const passwordHash = await this.hashPassword(tempPassword);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+
+    // Send email using Resend HTTP API
+    const smtpPass = process.env.SMTP_PASS;
+    const from = 'Rollinhead <contact@rollinhead.com>';
+    const frontendUrl = (process.env.FRONTEND_URL || 'https://dash.rollinhead.com').replace(/\/$/, '');
+
+    if (!smtpPass) {
+      console.log('\n------------------------------------------------------------');
+      console.log('📢 [SMTP CONFIG NOT SET] Rollinhead Password Reset Email');
+      console.log(`To: ${user.name} <${user.email}>`);
+      console.log(`Subject: [Rollinhead] Temporary Password Reset`);
+      console.log(`Body:\nHi ${user.name},\n\nYou requested a password reset. A temporary password has been generated for you:\n\nTemporary Password: ${tempPassword}\n\nPlease use this to log in at ${frontendUrl}/login and then update your password immediately in your Account Settings panel.\n\nBest regards,\nRollinhead Team`);
+      console.log('------------------------------------------------------------\n');
+    } else {
+      try {
+        const subject = '[Rollinhead] Temporary Password Reset';
+        const text = `Hi ${user.name},\n\nYou requested a password reset. A temporary password has been generated for you:\n\nTemporary Password: ${tempPassword}\n\nPlease use this to log in at ${frontendUrl}/login and then update your password immediately in your Account Settings panel.\n\nBest regards,\nRollinhead Team`;
+        const html = `
+          <div style="font-family: sans-serif; padding: 25px; max-width: 600px; border: 1px solid #e9ecef; border-radius: 8px; color: #333;">
+            <h2 style="color: #e50914; margin-top: 0; font-weight: 900; tracking-tight: -0.05em;">ROLLINHEAD</h2>
+            <p>Hi <strong>${user.name}</strong>,</p>
+            <p>You requested a password reset. A temporary password has been generated for you:</p>
+            <div style="background-color: #f8f9fa; border-left: 4px solid #e50914; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <h4 style="margin: 0 0 10px 0; color: #0f1115; font-size: 14px; font-weight: bold;">Temporary Credentials</h4>
+              <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Login URL:</strong> <a href="${frontendUrl}/login" style="color: #e50914; text-decoration: none;">Access Login</a></p>
+              <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Email Address:</strong> ${user.email}</p>
+              <p style="margin: 3px 0; font-size: 13px; color: #495057;"><strong>Temporary Password:</strong> <code style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-family: monospace;">${tempPassword}</code></p>
+            </div>
+            <p style="font-size: 13px; color: #495057; line-height: 1.5;">Please use this temporary password to access your account, then update it immediately in your <strong>Account Settings</strong> panel.</p>
+            <p style="font-size: 11px; color: #6c757d; margin-top: 30px; border-top: 1px solid #e9ecef; padding-top: 15px;">
+              This is an automated operational broadcast from Rollinhead Adtech. Please do not reply directly to this mail.
+            </p>
+          </div>
+        `;
+
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${smtpPass}`,
+          },
+          body: JSON.stringify({
+            from,
+            to: [user.email],
+            subject,
+            text,
+            html,
+          }),
+        }).then(async (res) => {
+          if (!res.ok) {
+            const errTxt = await res.text();
+            throw new Error(`Resend API Error: ${res.status} ${errTxt}`);
+          }
+        });
+
+        // Audit log success
+        await this.prisma.auditLog.create({
+          data: {
+            userId: user.id,
+            action: 'PASSWORD_RESET_EMAIL_SENT_SUCCESS',
+            entity: 'User',
+            entityId: user.id,
+            newValue: { email: user.email },
+          },
+        }).catch((e) => console.error('Failed to log reset success to DB:', e));
+
+      } catch (err: any) {
+        console.error('Failed to send password reset email via Resend API:', err);
+        // Audit log failure
+        await this.prisma.auditLog.create({
+          data: {
+            userId: user.id,
+            action: 'PASSWORD_RESET_EMAIL_SENT_FAILURE',
+            entity: 'User',
+            entityId: user.id,
+            newValue: { email: user.email, error: err.message || String(err) },
+          },
+        }).catch((e) => console.error('Failed to log reset failure to DB:', e));
+      }
+    }
+
+    return { message: 'If the email exists in our system, a temporary password has been sent.' };
+  }
+
   async updateProfile(
     userId: string,
     data: {

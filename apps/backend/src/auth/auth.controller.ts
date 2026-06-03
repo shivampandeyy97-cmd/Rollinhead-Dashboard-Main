@@ -108,6 +108,15 @@ export class AuthController {
     return { message: 'Logged out successfully' };
   }
 
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: any) {
+    const { email } = body;
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+    return this.authService.forgotPassword(email);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getProfile(@Req() req: any) {
