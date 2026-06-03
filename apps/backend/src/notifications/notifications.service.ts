@@ -62,7 +62,7 @@ export class NotificationsService {
     // 2. Fetch credentials from environment
     const pass = process.env.SMTP_PASS;
     const from =
-      process.env.SMTP_FROM || 'Rollinhead Adtech <no-reply@rollinhead.com>';
+      process.env.SMTP_FROM || 'Rollinhead <contact@rollinhead.com>';
 
     // 3. Fallback: Log email details cleanly if credentials aren't set
     if (!pass) {
