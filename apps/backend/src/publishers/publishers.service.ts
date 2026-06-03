@@ -165,6 +165,66 @@ export class PublishersService {
 
   // --- Revenue Share Management ---
 
+  async recalculatePublisherReports(publisherId: string, tx: any) {
+    // 1. Get all revenue configs for the publisher ordered by effectiveFrom desc
+    const configs = await tx.revenueShareConfig.findMany({
+      where: { publisherId },
+      orderBy: { effectiveFrom: 'desc' },
+    });
+
+    if (configs.length === 0) return;
+
+    // 2. Get all websites of the publisher
+    const websites = await tx.website.findMany({
+      where: { publisherId },
+      select: { id: true },
+    });
+    const websiteIds = websites.map((w: any) => w.id);
+
+    if (websiteIds.length === 0) return;
+
+    // 3. Query all reports for these websites
+    const reports = await tx.revenueReport.findMany({
+      where: { websiteId: { in: websiteIds } },
+    });
+
+    if (reports.length === 0) return;
+
+    // 4. For each report, find its matching active configuration and update
+    for (const report of reports) {
+      const reportDate = new Date(report.reportDate);
+      let activeShare = 80.0; // Fallback default
+
+      // Find active config for this date
+      for (const config of configs) {
+        const effectiveFrom = new Date(config.effectiveFrom);
+        const effectiveTo = config.effectiveTo
+          ? new Date(config.effectiveTo)
+          : null;
+
+        if (reportDate >= effectiveFrom && (!effectiveTo || reportDate < effectiveTo)) {
+          activeShare = Number(config.sharePercentage);
+          break;
+        }
+      }
+
+      const grossRev = Number(report.grossRevenue);
+      const imps = Number(report.impressions);
+      
+      const newNetRevenue = grossRev * (activeShare / 100);
+      const newNetCpm = imps > 0 ? (newNetRevenue / imps) * 1000 : 0;
+
+      // Update the report in DB
+      await tx.revenueReport.update({
+        where: { id: report.id },
+        data: {
+          netRevenue: newNetRevenue,
+          netCpm: newNetCpm,
+        },
+      });
+    }
+  }
+
   async addRevenueShareConfig(
     id: string,
     data: {
@@ -207,6 +267,9 @@ export class PublishersService {
           createdBy: data.adminUserId,
         },
       });
+
+      // Recalculate existing reports to apply the updated shareconfigs
+      await this.recalculatePublisherReports(id, tx);
 
       // 3. Audit log
       await tx.auditLog.create({
