@@ -167,7 +167,7 @@ export class AuthController {
     const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
     const smtpUser = process.env.SMTP_USER;
     const smtpPass = process.env.SMTP_PASS;
-    const from = process.env.SMTP_FROM || 'Rollinhead <contact@rollinhead.com>';
+    const from = 'Rollinhead <contact@rollinhead.com>';
 
     const dbStatus = await this.authService.getDbStatus();
 

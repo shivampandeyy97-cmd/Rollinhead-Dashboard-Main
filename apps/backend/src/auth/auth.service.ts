@@ -177,7 +177,7 @@ export class AuthService {
     requesterRole?: string,
   ) {
     const smtpPass = process.env.SMTP_PASS;
-    const from = process.env.SMTP_FROM || 'Rollinhead <contact@rollinhead.com>';
+    const from = 'Rollinhead <contact@rollinhead.com>';
     const isAdminOnboarded = requesterRole === 'ADMIN' || requesterRole === 'SUPER_ADMIN';
 
     // 1. Fallback: Log email details cleanly if API key isn't set
