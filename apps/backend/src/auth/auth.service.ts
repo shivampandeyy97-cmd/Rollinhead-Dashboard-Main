@@ -179,7 +179,7 @@ export class AuthService {
     const smtpPass = process.env.SMTP_PASS;
     const from = 'Rollinhead <contact@rollinhead.com>';
     const isAdminOnboarded = requesterRole === 'ADMIN' || requesterRole === 'SUPER_ADMIN';
-    const frontendUrl = (process.env.FRONTEND_URL || 'https://dash.rollinhead.com').replace(/\/$/, '');
+    const frontendUrl = 'https://dash.rollinhead.com';
 
     // 1. Fallback: Log email details cleanly if API key isn't set
     if (!smtpPass) {
@@ -366,7 +366,7 @@ export class AuthService {
     // Send email using Resend HTTP API
     const smtpPass = process.env.SMTP_PASS;
     const from = 'Rollinhead <contact@rollinhead.com>';
-    const frontendUrl = (process.env.FRONTEND_URL || 'https://dash.rollinhead.com').replace(/\/$/, '');
+    const frontendUrl = 'https://dash.rollinhead.com';
 
     if (!smtpPass) {
       console.log('\n------------------------------------------------------------');
