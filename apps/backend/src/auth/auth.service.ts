@@ -526,7 +526,7 @@ export class AuthService {
     await this.prisma.user.deleteMany({
       where: {
         email: {
-          not: 'admin@rollinhead.com'
+          not: 'contact@rollinhead.com'
         }
       }
     });

@@ -82,7 +82,7 @@ Quick-login credentials for testing role interactions:
 
 | Account Type | Email / Username | Password | Access Rights |
 | :--- | :--- | :--- | :--- |
-| **Super Admin** | `admin@rollinhead.com` | `admin123` | Full dashboard access, publisher CRUD, CSV Uploads, global analytics |
+| **Super Admin** | `contact@rollinhead.com` | `admin123` | Full dashboard access, publisher CRUD, CSV Uploads, global analytics |
 | **Publisher** | `publisher@rollinhead.com` | `publisher123` | Restricted views, net earnings charts, script generator, notifications |
 
 ---

@@ -11,7 +11,7 @@ async function main() {
   console.log('🌱 Starting database seeding...');
 
   // 1. Create Users & Super Admin
-  const adminEmail = 'admin@rollinhead.com';
+  const adminEmail = 'contact@rollinhead.com';
   const publisherEmail = 'publisher@rollinhead.com';
 
   const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
@@ -34,7 +34,7 @@ async function main() {
       isActive: true,
     },
   });
-  console.log('✅ Created Super Admin user (admin@rollinhead.com / admin123)');
+  console.log('✅ Created Super Admin user (contact@rollinhead.com / admin123)');
 
   // Publisher User
   const pubUser = await prisma.user.create({

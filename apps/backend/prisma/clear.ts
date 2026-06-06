@@ -41,13 +41,13 @@ async function main() {
   const deletedUsers = await prisma.user.deleteMany({
     where: {
       email: {
-        not: 'admin@rollinhead.com'
+        not: 'contact@rollinhead.com'
       }
     }
   });
   console.log(`- Deleted ${deletedUsers.count} publisher and guest User accounts`);
 
-  console.log('\n✅ Supabase database is completely clean! Only the Super Admin (admin@rollinhead.com) remains.');
+  console.log('\n✅ Supabase database is completely clean! Only the Super Admin (contact@rollinhead.com) remains.');
 }
 
 main()
