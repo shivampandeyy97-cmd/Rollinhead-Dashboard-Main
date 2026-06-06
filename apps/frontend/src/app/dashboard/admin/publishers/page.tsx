@@ -39,6 +39,7 @@ export default function AdminPublishersPage() {
   const [status, setStatus] = useState('ACTIVE');
   const [sharePercentage, setSharePercentage] = useState('80');
   const [effectiveFrom, setEffectiveFrom] = useState(() => new Date().toISOString().split('T')[0]);
+  const [effectiveTo, setEffectiveTo] = useState('');
 
   // Website form states
   const [domain, setDomain] = useState('');
@@ -201,6 +202,8 @@ export default function AdminPublishersPage() {
   const handleOpenRevShare = (pub: any) => {
     setSelectedPub(pub);
     setSharePercentage(pub.revenueShareConfigs?.[0]?.sharePercentage?.toString() || '80');
+    setEffectiveFrom(() => new Date().toISOString().split('T')[0]);
+    setEffectiveTo('');
     setActiveModal('rev-share');
   };
 
@@ -612,7 +615,7 @@ export default function AdminPublishersPage() {
             
             <form onSubmit={(e) => {
               e.preventDefault();
-              revShareMutation.mutate({ sharePercentage, effectiveFrom });
+              revShareMutation.mutate({ sharePercentage, effectiveFrom, effectiveTo: effectiveTo || null });
             }} className="space-y-4 text-left">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Publisher Share Percentage (%)</label>
@@ -628,12 +631,22 @@ export default function AdminPublishersPage() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Effective Date</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Start Date (Effective From) *</label>
                 <input
                   type="date"
                   required
                   value={effectiveFrom}
                   onChange={(e) => setEffectiveFrom(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-red-200 rounded-lg py-2.5 px-3 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">End Date (Effective To — Optional)</label>
+                <input
+                  type="date"
+                  value={effectiveTo}
+                  onChange={(e) => setEffectiveTo(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-red-200 rounded-lg py-2.5 px-3 text-xs"
                 />
               </div>

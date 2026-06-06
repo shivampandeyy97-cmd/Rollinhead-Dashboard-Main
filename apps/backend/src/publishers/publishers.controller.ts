@@ -59,7 +59,7 @@ export class PublishersController {
     @Param('id') id: string,
     @Body() body: any,
   ) {
-    const { sharePercentage, effectiveFrom } = body;
+    const { sharePercentage, effectiveFrom, effectiveTo } = body;
     if (sharePercentage === undefined || !effectiveFrom) {
       throw new BadRequestException(
         'Share percentage and effective from date are required',
@@ -74,6 +74,7 @@ export class PublishersController {
     return this.publishersService.addRevenueShareConfig(id, {
       sharePercentage: percentage,
       effectiveFrom: new Date(effectiveFrom),
+      effectiveTo: effectiveTo ? new Date(effectiveTo) : null,
       adminUserId: req.user.id,
     });
   }

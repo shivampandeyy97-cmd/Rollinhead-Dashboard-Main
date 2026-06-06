@@ -201,7 +201,7 @@ export class UploadsService {
 
           if (
             reportDateStr >= effectiveFromStr &&
-            (!effectiveToStr || reportDateStr < effectiveToStr)
+            (!effectiveToStr || reportDateStr <= effectiveToStr)
           ) {
             activeShare = Number(config.sharePercentage);
             break;

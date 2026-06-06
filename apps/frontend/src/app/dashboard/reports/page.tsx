@@ -67,6 +67,9 @@ export default function ReportsPage() {
     if (device) q.append('device', device);
     if (groupBy) q.append('groupBy', groupBy);
 
+    const token = typeof window !== 'undefined' ? localStorage.getItem('rollinhead_token') : '';
+    if (token) q.append('token', token);
+
     window.open(`${API_URL}/reports/export?${q.toString()}`, '_blank');
   };
 

@@ -14,7 +14,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
-          // Extract from cookie or Authorization header
+          // Extract from cookie, Authorization header, or query parameter (for CSV export downloads)
           const tokenFromCookie = request?.cookies?.access_token;
           if (tokenFromCookie) {
             return tokenFromCookie;
@@ -23,6 +23,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           const authHeader = request?.headers?.authorization;
           if (authHeader && authHeader.startsWith('Bearer ')) {
             return authHeader.substring(7);
+          }
+
+          const tokenFromQuery = request?.query?.token as string;
+          if (tokenFromQuery) {
+            return tokenFromQuery;
           }
 
           return null;

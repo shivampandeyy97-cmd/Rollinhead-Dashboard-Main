@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { api, API_URL } from '../../lib/api';
 import { useAuthStore } from '../../stores/auth';
 import { 
   TrendingUp, 
@@ -16,7 +16,8 @@ import {
   AlertCircle,
   Filter,
   Calendar,
-  Laptop
+  Laptop,
+  Download
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -147,6 +148,23 @@ export default function OverviewPage() {
   });
 
   const loading = overviewLoading || performanceLoading || breakdownLoading;
+
+  // Handle Export CSV
+  const handleExportCsv = () => {
+    const q = new URLSearchParams();
+    if (startDate) q.append('startDate', startDate);
+    if (endDate) q.append('endDate', endDate);
+    if (websiteId) q.append('websiteId', websiteId);
+    if (publisherId) q.append('publisherId', publisherId);
+    if (country) q.append('country', country);
+    if (device) q.append('device', device);
+    q.append('groupBy', 'website');
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('rollinhead_token') : '';
+    if (token) q.append('token', token);
+
+    window.open(`${API_URL}/reports/export?${q.toString()}`, '_blank');
+  };
 
   const zeroOverview = {
     netRevenue: { current: 0.00, changePercent: 0.0 },
@@ -549,9 +567,18 @@ export default function OverviewPage() {
 
       {/* Inventory Breakdown Table */}
       <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
-        <div className="px-6 py-5 border-b border-slate-100">
-          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Website Performance Breakdown</h3>
-          <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Breakdown sorted by net earnings</p>
+        <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Website Performance Breakdown</h3>
+            <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Breakdown sorted by net earnings</p>
+          </div>
+          <button
+            onClick={handleExportCsv}
+            className="flex items-center justify-center space-x-2 bg-gradient-to-r from-[#e50914] to-[#ff5757] hover:from-[#c20811] hover:to-[#e04545] text-white px-4 py-2 rounded-lg text-[10px] font-black transition-all cursor-pointer shadow-md hover:shadow-lg shadow-red-500/10 hover:shadow-red-500/20 self-start sm:self-auto"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Export CSV</span>
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">

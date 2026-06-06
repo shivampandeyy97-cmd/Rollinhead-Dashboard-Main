@@ -202,7 +202,7 @@ export class PublishersService {
           ? new Date(config.effectiveTo).toISOString().split('T')[0]
           : null;
 
-        if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr < effectiveToStr)) {
+        if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
           activeShare = Number(config.sharePercentage);
           break;
         }
@@ -230,6 +230,7 @@ export class PublishersService {
     data: {
       sharePercentage: number;
       effectiveFrom: Date;
+      effectiveTo: Date | null;
       adminUserId: string;
     },
   ) {
@@ -253,38 +254,15 @@ export class PublishersService {
           publisherId: id,
           sharePercentage: data.sharePercentage,
           effectiveFrom: data.effectiveFrom,
+          effectiveTo: data.effectiveTo,
           createdBy: data.adminUserId,
         },
       });
 
-      // 2. Fetch all configs for this publisher sorted by effectiveFrom asc
-      const allConfigs = await tx.revenueShareConfig.findMany({
-        where: { publisherId: id },
-        orderBy: { effectiveFrom: 'asc' },
-      });
-
-      // 3. Update effectiveTo of each config to match the next config's effectiveFrom
-      for (let i = 0; i < allConfigs.length; i++) {
-        const current = allConfigs[i];
-        const next = allConfigs[i + 1];
-        const targetEffectiveTo = next ? next.effectiveFrom : null;
-
-        // Only update if it actually changed to save DB writes
-        const currentToTime = current.effectiveTo ? current.effectiveTo.getTime() : null;
-        const targetToTime = targetEffectiveTo ? targetEffectiveTo.getTime() : null;
-
-        if (currentToTime !== targetToTime) {
-          await tx.revenueShareConfig.update({
-            where: { id: current.id },
-            data: { effectiveTo: targetEffectiveTo },
-          });
-        }
-      }
-
       // Recalculate existing reports to apply the updated shareconfigs
       await this.recalculatePublisherReports(id, tx);
 
-      // 4. Audit log
+      // 2. Audit log
       await tx.auditLog.create({
         data: {
           userId: data.adminUserId,
