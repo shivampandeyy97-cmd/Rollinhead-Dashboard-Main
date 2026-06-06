@@ -192,17 +192,17 @@ export class PublishersService {
 
     // 4. For each report, find its matching active configuration and update
     for (const report of reports) {
-      const reportDate = new Date(report.reportDate);
+      const reportDateStr = new Date(report.reportDate).toISOString().split('T')[0];
       let activeShare = 80.0; // Fallback default
 
       // Find active config for this date
       for (const config of configs) {
-        const effectiveFrom = new Date(config.effectiveFrom);
-        const effectiveTo = config.effectiveTo
-          ? new Date(config.effectiveTo)
+        const effectiveFromStr = new Date(config.effectiveFrom).toISOString().split('T')[0];
+        const effectiveToStr = config.effectiveTo
+          ? new Date(config.effectiveTo).toISOString().split('T')[0]
           : null;
 
-        if (reportDate >= effectiveFrom && (!effectiveTo || reportDate < effectiveTo)) {
+        if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr < effectiveToStr)) {
           activeShare = Number(config.sharePercentage);
           break;
         }
@@ -247,18 +247,7 @@ export class PublishersService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. Close active configurations if they overlap or cap effectiveTo
-      await tx.revenueShareConfig.updateMany({
-        where: {
-          publisherId: id,
-          effectiveTo: null,
-        },
-        data: {
-          effectiveTo: data.effectiveFrom,
-        },
-      });
-
-      // 2. Create the new config
+      // 1. Create the new config
       const newConfig = await tx.revenueShareConfig.create({
         data: {
           publisherId: id,
@@ -268,10 +257,34 @@ export class PublishersService {
         },
       });
 
+      // 2. Fetch all configs for this publisher sorted by effectiveFrom asc
+      const allConfigs = await tx.revenueShareConfig.findMany({
+        where: { publisherId: id },
+        orderBy: { effectiveFrom: 'asc' },
+      });
+
+      // 3. Update effectiveTo of each config to match the next config's effectiveFrom
+      for (let i = 0; i < allConfigs.length; i++) {
+        const current = allConfigs[i];
+        const next = allConfigs[i + 1];
+        const targetEffectiveTo = next ? next.effectiveFrom : null;
+
+        // Only update if it actually changed to save DB writes
+        const currentToTime = current.effectiveTo ? current.effectiveTo.getTime() : null;
+        const targetToTime = targetEffectiveTo ? targetEffectiveTo.getTime() : null;
+
+        if (currentToTime !== targetToTime) {
+          await tx.revenueShareConfig.update({
+            where: { id: current.id },
+            data: { effectiveTo: targetEffectiveTo },
+          });
+        }
+      }
+
       // Recalculate existing reports to apply the updated shareconfigs
       await this.recalculatePublisherReports(id, tx);
 
-      // 3. Audit log
+      // 4. Audit log
       await tx.auditLog.create({
         data: {
           userId: data.adminUserId,

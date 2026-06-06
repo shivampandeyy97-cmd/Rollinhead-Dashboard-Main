@@ -191,15 +191,17 @@ export class UploadsService {
         const configs = publisher.revenueShareConfigs;
         let activeShare = 80.0; // Default fallback to 80% share to publisher (20% margin)
 
+        const reportDateStr = reportDate.toISOString().split('T')[0];
+
         for (const config of configs) {
-          const effectiveFrom = new Date(config.effectiveFrom);
-          const effectiveTo = config.effectiveTo
-            ? new Date(config.effectiveTo)
+          const effectiveFromStr = new Date(config.effectiveFrom).toISOString().split('T')[0];
+          const effectiveToStr = config.effectiveTo
+            ? new Date(config.effectiveTo).toISOString().split('T')[0]
             : null;
 
           if (
-            reportDate >= effectiveFrom &&
-            (!effectiveTo || reportDate < effectiveTo)
+            reportDateStr >= effectiveFromStr &&
+            (!effectiveToStr || reportDateStr < effectiveToStr)
           ) {
             activeShare = Number(config.sharePercentage);
             break;
