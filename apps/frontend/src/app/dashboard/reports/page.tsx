@@ -207,8 +207,6 @@ export default function ReportsPage() {
               <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50">
                 <th className="px-6 py-3.5">Dimension ({groupBy})</th>
                 <th className="px-6 py-3.5">Impressions</th>
-                <th className="px-6 py-3.5">Pageviews</th>
-                <th className="px-6 py-3.5">Clicks</th>
                 
                 {/* Admin Columns */}
                 {!isPublisher && <th className="px-6 py-3.5">Gross Revenue</th>}
@@ -222,15 +220,13 @@ export default function ReportsPage() {
             <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
               {currentData.length === 0 ? (
                 <tr>
-                  <td colSpan={isPublisher ? 5 : 9} className="px-6 py-10 text-center text-slate-400 font-medium bg-white">
+                  <td colSpan={isPublisher ? 3 : 7} className="px-6 py-10 text-center text-slate-400 font-medium bg-white">
                     No performance records found for the selected configurations.
                   </td>
                 </tr>
               ) : (
                 currentData.map((row: any, i: number) => {
                   const imps = Number(row.impressions);
-                  const pageviews = Number(row.pageviews);
-                  const clicks = Number(row.clicks);
                   const netRev = Number(row.netRevenue);
                   const netCpm = Number(row.netCpm);
 
@@ -244,8 +240,6 @@ export default function ReportsPage() {
                         <span>{row.dimension}</span>
                       </td>
                       <td className="px-6 py-4 text-slate-500">{imps.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-slate-500">{pageviews.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-slate-500">{clicks.toLocaleString()}</td>
                       
                       {/* Admin Columns */}
                       {!isPublisher && (

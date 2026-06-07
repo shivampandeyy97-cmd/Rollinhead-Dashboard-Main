@@ -192,14 +192,20 @@ export class PublishersService {
 
     // 4. For each report, find its matching active configuration and update
     for (const report of reports) {
-      const reportDateStr = new Date(report.reportDate).toISOString().split('T')[0];
+      const dReport = new Date(report.reportDate);
+      const reportDateStr = `${dReport.getUTCFullYear()}-${String(dReport.getUTCMonth() + 1).padStart(2, '0')}-${String(dReport.getUTCDate()).padStart(2, '0')}`;
       let activeShare = 80.0; // Fallback default
 
       // Find active config for this date
       for (const config of configs) {
-        const effectiveFromStr = new Date(config.effectiveFrom).toISOString().split('T')[0];
+        const dFrom = new Date(config.effectiveFrom);
+        const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
+        
         const effectiveToStr = config.effectiveTo
-          ? new Date(config.effectiveTo).toISOString().split('T')[0]
+          ? (() => {
+              const dTo = new Date(config.effectiveTo);
+              return `${dTo.getUTCFullYear()}-${String(dTo.getUTCMonth() + 1).padStart(2, '0')}-${String(dTo.getUTCDate()).padStart(2, '0')}`;
+            })()
           : null;
 
         if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {

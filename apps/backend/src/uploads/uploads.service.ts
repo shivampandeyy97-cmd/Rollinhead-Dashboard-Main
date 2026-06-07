@@ -8,6 +8,40 @@ import { UploadStatus, DeviceType, UserRole } from '@prisma/client';
 import * as fs from 'fs';
 import csv from 'csv-parser';
 
+function parseDateAsUtc(dateStr: string): Date {
+  const clean = dateStr.trim();
+  
+  // 1. Try YYYY-MM-DD or YYYY/MM/DD
+  let match = clean.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (match) {
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const day = parseInt(match[3], 10);
+    return new Date(Date.UTC(year, month - 1, day));
+  }
+
+  // 2. Try MM/DD/YYYY or MM-DD-YYYY
+  match = clean.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (match) {
+    const month = parseInt(match[1], 10);
+    const day = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    return new Date(Date.UTC(year, month - 1, day));
+  }
+
+  // Fallback to standard parsing
+  const d = new Date(clean);
+  if (isNaN(d.getTime())) {
+    throw new Error(`Invalid date format: ${dateStr}`);
+  }
+  
+  if (!clean.includes('T') && !clean.includes(':')) {
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  }
+  
+  return d;
+}
+
 @Injectable()
 export class UploadsService {
   constructor(private prisma: PrismaService) {}
@@ -171,7 +205,7 @@ export class UploadsService {
           );
         }
 
-        const reportDate = new Date(dateStr);
+        const reportDate = parseDateAsUtc(dateStr);
         if (isNaN(reportDate.getTime())) {
           throw new Error(`Invalid date format: '${dateStr}'`);
         }
@@ -191,12 +225,18 @@ export class UploadsService {
         const configs = publisher.revenueShareConfigs;
         let activeShare = 80.0; // Default fallback to 80% share to publisher (20% margin)
 
-        const reportDateStr = reportDate.toISOString().split('T')[0];
+        const dReport = new Date(reportDate);
+        const reportDateStr = `${dReport.getUTCFullYear()}-${String(dReport.getUTCMonth() + 1).padStart(2, '0')}-${String(dReport.getUTCDate()).padStart(2, '0')}`;
 
         for (const config of configs) {
-          const effectiveFromStr = new Date(config.effectiveFrom).toISOString().split('T')[0];
+          const dFrom = new Date(config.effectiveFrom);
+          const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
+          
           const effectiveToStr = config.effectiveTo
-            ? new Date(config.effectiveTo).toISOString().split('T')[0]
+            ? (() => {
+                const dTo = new Date(config.effectiveTo);
+                return `${dTo.getUTCFullYear()}-${String(dTo.getUTCMonth() + 1).padStart(2, '0')}-${String(dTo.getUTCDate()).padStart(2, '0')}`;
+              })()
             : null;
 
           if (

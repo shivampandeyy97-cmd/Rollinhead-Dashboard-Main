@@ -9,7 +9,6 @@ import {
   TrendingDown, 
   DollarSign, 
   Eye, 
-  MousePointerClick, 
   Activity, 
   Loader2, 
   Globe,
@@ -185,7 +184,6 @@ export default function OverviewPage() {
     { label: 'Net Revenue', value: 'netRevenue' },
     { label: 'Impressions', value: 'impressions' },
     { label: 'Net CPM', value: 'netCpm' },
-    { label: 'Clicks', value: 'clicks' },
   ];
 
   if (!isPublisher) {
@@ -336,7 +334,7 @@ export default function OverviewPage() {
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Revenue Card */}
         <div className="bg-white border border-slate-100 rounded-xl p-6 relative overflow-hidden group hover:border-red-100 transition-all duration-300 shadow-sm">
@@ -419,35 +417,6 @@ export default function OverviewPage() {
               <span className="flex items-center text-red-600 space-x-1">
                 <TrendingDown className="h-3.5 w-3.5" />
                 <span>{currentOverview.netCpm.changePercent.toFixed(1)}%</span>
-              </span>
-            )}
-            <span className="text-slate-400 ml-2">vs prev period</span>
-          </div>
-        </div>
-
-        {/* Clicks Card */}
-        <div className="bg-white border border-slate-100 rounded-xl p-6 relative overflow-hidden group hover:border-red-100 transition-all duration-300 shadow-sm">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ad Clicks</p>
-              <h3 className="text-2xl font-black mt-2 tracking-tight text-slate-900">
-                {currentOverview.clicks.current.toLocaleString()}
-              </h3>
-            </div>
-            <div className="bg-red-50/50 border border-red-100/30 p-2.5 rounded-lg text-[#e50914]">
-              <MousePointerClick className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="flex items-center mt-4 text-xs font-semibold">
-            {currentOverview.clicks.changePercent >= 0 ? (
-              <span className="flex items-center text-green-600 space-x-1">
-                <TrendingUp className="h-3.5 w-3.5" />
-                <span>+{currentOverview.clicks.changePercent.toFixed(1)}%</span>
-              </span>
-            ) : (
-              <span className="flex items-center text-red-600 space-x-1">
-                <TrendingDown className="h-3.5 w-3.5" />
-                <span>{currentOverview.clicks.changePercent.toFixed(1)}%</span>
               </span>
             )}
             <span className="text-slate-400 ml-2">vs prev period</span>
@@ -586,7 +555,6 @@ export default function OverviewPage() {
               <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50">
                 <th className="px-6 py-3.5">Website</th>
                 <th className="px-6 py-3.5">Impressions</th>
-                <th className="px-6 py-3.5">Clicks</th>
                 <th className="px-6 py-3.5">Est. Net CPM</th>
                 <th className="px-6 py-3.5 text-right">Net Revenue</th>
               </tr>
@@ -594,7 +562,7 @@ export default function OverviewPage() {
             <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
               {currentBreakdown.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400 font-medium bg-white">
+                  <td colSpan={4} className="px-6 py-10 text-center text-slate-400 font-medium bg-white">
                     No active website performance logs found.
                   </td>
                 </tr>
@@ -606,7 +574,6 @@ export default function OverviewPage() {
                       <span>{row.dimension}</span>
                     </td>
                     <td className="px-6 py-4 text-slate-500">{Number(row.impressions).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-slate-500">{Number(row.clicks).toLocaleString()}</td>
                     <td className="px-6 py-4 text-slate-500">${Number(row.netCpm || 0).toFixed(2)}</td>
                     <td className="px-6 py-4 text-right text-[#e50914] font-black">${Number(row.netRevenue).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                   </tr>

@@ -2,17 +2,51 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UserRole, DeviceType } from '@prisma/client';
 
+function parseDateAsUtc(dateStr: string): Date {
+  const clean = dateStr.trim();
+  
+  // 1. Try YYYY-MM-DD or YYYY/MM/DD
+  let match = clean.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (match) {
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const day = parseInt(match[3], 10);
+    return new Date(Date.UTC(year, month - 1, day));
+  }
+
+  // 2. Try MM/DD/YYYY or MM-DD-YYYY
+  match = clean.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (match) {
+    const month = parseInt(match[1], 10);
+    const day = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    return new Date(Date.UTC(year, month - 1, day));
+  }
+
+  // Fallback to standard parsing
+  const d = new Date(clean);
+  if (isNaN(d.getTime())) {
+    throw new Error(`Invalid date format: ${dateStr}`);
+  }
+  
+  if (!clean.includes('T') && !clean.includes(':')) {
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  }
+  
+  return d;
+}
+
 @Injectable()
 export class ReportsService {
   constructor(private prisma: PrismaService) {}
 
   private parseDate(dateStr: string | undefined, defaultDate: Date): Date {
     if (!dateStr) return defaultDate;
-    const parsed = new Date(dateStr);
-    if (isNaN(parsed.getTime())) {
-      throw new BadRequestException(`Invalid date format: ${dateStr}`);
+    try {
+      return parseDateAsUtc(dateStr);
+    } catch (e: any) {
+      throw new BadRequestException(e.message);
     }
-    return parsed;
   }
 
   async getOverviewMetrics(params: {
@@ -198,7 +232,7 @@ export class ReportsService {
       const netRev = Number(row._sum.netRevenue || 0);
 
       const baseRow: any = {
-        date: row.reportDate.toISOString().split('T')[0],
+        date: `${row.reportDate.getUTCFullYear()}-${String(row.reportDate.getUTCMonth() + 1).padStart(2, '0')}-${String(row.reportDate.getUTCDate()).padStart(2, '0')}`,
         impressions: imps,
         pageviews: Number(row._sum.pageviews || 0),
         clicks: Number(row._sum.clicks || 0),
@@ -309,7 +343,8 @@ export class ReportsService {
       const grossRev = Number(row._sum.grossRevenue || 0);
       const netRev = Number(row._sum.netRevenue || 0);
 
-      const dateStr = row.reportDate!.toISOString().split('T')[0];
+      const dRep = new Date(row.reportDate);
+      const dateStr = `${dRep.getUTCFullYear()}-${String(dRep.getUTCMonth() + 1).padStart(2, '0')}-${String(dRep.getUTCDate()).padStart(2, '0')}`;
       let dimensionName = '';
       if (groupField === 'website') {
         dimensionName = websiteMap.get(row.websiteId) || 'Unknown Website';

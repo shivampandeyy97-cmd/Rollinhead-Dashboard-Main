@@ -15,6 +15,40 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole, PublisherStatus, PaymentCycle } from '@prisma/client';
 
+function parseDateAsUtc(dateStr: string): Date {
+  const clean = dateStr.trim();
+  
+  // 1. Try YYYY-MM-DD or YYYY/MM/DD
+  let match = clean.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (match) {
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const day = parseInt(match[3], 10);
+    return new Date(Date.UTC(year, month - 1, day));
+  }
+
+  // 2. Try MM/DD/YYYY or MM-DD-YYYY
+  match = clean.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (match) {
+    const month = parseInt(match[1], 10);
+    const day = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    return new Date(Date.UTC(year, month - 1, day));
+  }
+
+  // Fallback to standard parsing
+  const d = new Date(clean);
+  if (isNaN(d.getTime())) {
+    throw new Error(`Invalid date format: ${dateStr}`);
+  }
+  
+  if (!clean.includes('T') && !clean.includes(':')) {
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  }
+  
+  return d;
+}
+
 @Controller('publishers')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
@@ -73,8 +107,8 @@ export class PublishersController {
 
     return this.publishersService.addRevenueShareConfig(id, {
       sharePercentage: percentage,
-      effectiveFrom: new Date(effectiveFrom),
-      effectiveTo: effectiveTo ? new Date(effectiveTo) : null,
+      effectiveFrom: parseDateAsUtc(effectiveFrom),
+      effectiveTo: effectiveTo ? parseDateAsUtc(effectiveTo) : null,
       adminUserId: req.user.id,
     });
   }
