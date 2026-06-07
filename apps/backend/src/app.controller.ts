@@ -27,7 +27,12 @@ export class AppController {
       },
     });
 
-    const reportsCount = await this.prisma.revenueReport.count();
+    const reports = await this.prisma.revenueReport.findMany({
+      include: {
+        website: true,
+      },
+      orderBy: { reportDate: 'asc' },
+    });
 
     return {
       publishers: publishers.map((p) => ({
@@ -44,7 +49,17 @@ export class AppController {
           createdAt: c.createdAt,
         })),
       })),
-      reportsCount,
+      reports: reports.map((r) => ({
+        id: r.id,
+        websiteId: r.websiteId,
+        websiteDomain: r.website?.domain,
+        reportDate: r.reportDate,
+        impressions: r.impressions.toString(),
+        grossRevenue: r.grossRevenue,
+        netRevenue: r.netRevenue,
+        netCpm: r.netCpm,
+      })),
+      reportsCount: reports.length,
     };
   }
 }
