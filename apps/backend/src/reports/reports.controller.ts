@@ -108,16 +108,12 @@ export class ReportsController {
       ? [
           'Dimension',
           'Impressions',
-          'Pageviews',
-          'Clicks',
           'Net Revenue ($)',
           'Net CPM ($)',
         ]
       : [
           'Dimension',
           'Impressions',
-          'Pageviews',
-          'Clicks',
           'Gross Revenue ($)',
           'Net Revenue ($)',
           'Margin ($)',
@@ -133,16 +129,12 @@ export class ReportsController {
         ? [
             row.dimension,
             row.impressions,
-            row.pageviews,
-            row.clicks,
             row.netRevenue.toFixed(4),
             row.netCpm.toFixed(4),
           ]
         : [
             row.dimension,
             row.impressions,
-            row.pageviews,
-            row.clicks,
             row.grossRevenue.toFixed(4),
             row.netRevenue.toFixed(4),
             row.margin.toFixed(4),

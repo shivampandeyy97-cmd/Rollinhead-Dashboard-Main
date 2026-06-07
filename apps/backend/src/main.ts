@@ -153,6 +153,74 @@ async function bootstrap() {
       console.log('[STARTUP] Verified contact@rollinhead.com credentials are set correctly');
     }
     
+    // 3. Recalculate reports for all publishers to clean up any past date/timezone matching errors
+    try {
+      console.log('[STARTUP] Recalculating reports for all publishers to apply correct date boundaries...');
+      const publishers = await prismaInstance.publisher.findMany({
+        select: { id: true }
+      });
+      for (const pub of publishers) {
+        console.log(`[STARTUP] Recalculating reports for publisher: ${pub.id}`);
+        const configs = await prismaInstance.revenueShareConfig.findMany({
+          where: { publisherId: pub.id },
+          orderBy: { effectiveFrom: 'desc' },
+        });
+
+        if (configs.length === 0) continue;
+
+        const websites = await prismaInstance.website.findMany({
+          where: { publisherId: pub.id },
+          select: { id: true },
+        });
+        const websiteIds = websites.map((w) => w.id);
+        if (websiteIds.length === 0) continue;
+
+        const reports = await prismaInstance.revenueReport.findMany({
+          where: { websiteId: { in: websiteIds } },
+        });
+        if (reports.length === 0) continue;
+
+        for (const report of reports) {
+          const dReport = new Date(report.reportDate);
+          const reportDateStr = `${dReport.getUTCFullYear()}-${String(dReport.getUTCMonth() + 1).padStart(2, '0')}-${String(dReport.getUTCDate()).padStart(2, '0')}`;
+          let activeShare = 80.0;
+
+          for (const config of configs) {
+            const dFrom = new Date(config.effectiveFrom);
+            const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
+            
+            const effectiveToStr = config.effectiveTo
+              ? (() => {
+                  const dTo = new Date(config.effectiveTo);
+                  return `${dTo.getUTCFullYear()}-${String(dTo.getUTCMonth() + 1).padStart(2, '0')}-${String(dTo.getUTCDate()).padStart(2, '0')}`;
+                })()
+              : null;
+
+            if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
+              activeShare = Number(config.sharePercentage);
+              break;
+            }
+          }
+
+          const grossRev = Number(report.grossRevenue);
+          const imps = Number(report.impressions);
+          const newNetRevenue = grossRev * (activeShare / 100);
+          const newNetCpm = imps > 0 ? (newNetRevenue / imps) * 1000 : 0;
+
+          await prismaInstance.revenueReport.update({
+            where: { id: report.id },
+            data: {
+              netRevenue: newNetRevenue,
+              netCpm: newNetCpm,
+            },
+          });
+        }
+      }
+      console.log('[STARTUP] Recalculation complete.');
+    } catch (recalcError) {
+      console.error('[STARTUP] Error during database recalculation:', recalcError);
+    }
+    
     await prismaInstance.$disconnect();
   } catch (startupError) {
     console.error('[STARTUP] Error verifying/running admin credentials startup update:', startupError);
