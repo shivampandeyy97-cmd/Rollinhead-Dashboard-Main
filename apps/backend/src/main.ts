@@ -163,6 +163,11 @@ async function bootstrap() {
         console.log(`[STARTUP] Recalculating reports for publisher: ${pub.id}`);
         const configs = await prismaInstance.revenueShareConfig.findMany({
           where: { publisherId: pub.id },
+          include: {
+            creator: {
+              select: { role: true }
+            }
+          },
           orderBy: { effectiveFrom: 'desc' },
         });
 
@@ -185,7 +190,13 @@ async function bootstrap() {
           const reportDateStr = `${dReport.getUTCFullYear()}-${String(dReport.getUTCMonth() + 1).padStart(2, '0')}-${String(dReport.getUTCDate()).padStart(2, '0')}`;
           let activeShare = 80.0;
 
-          for (const config of configs) {
+          const adminConfigs = configs.filter((c: any) => c.creator?.role !== 'PUBLISHER');
+          const defaultConfigs = configs.filter((c: any) => c.creator?.role === 'PUBLISHER');
+
+          let found = false;
+
+          // 1. Check admin configs first
+          for (const config of adminConfigs) {
             const dFrom = new Date(config.effectiveFrom);
             const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
             
@@ -198,7 +209,29 @@ async function bootstrap() {
 
             if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
               activeShare = Number(config.sharePercentage);
+              found = true;
               break;
+            }
+          }
+
+          // 2. Check default configs
+          if (!found) {
+            for (const config of defaultConfigs) {
+              const dFrom = new Date(config.effectiveFrom);
+              const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
+              
+              const effectiveToStr = config.effectiveTo
+                ? (() => {
+                    const dTo = new Date(config.effectiveTo);
+                    return `${dTo.getUTCFullYear()}-${String(dTo.getUTCMonth() + 1).padStart(2, '0')}-${String(dTo.getUTCDate()).padStart(2, '0')}`;
+                  })()
+                : null;
+
+              if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
+                activeShare = Number(config.sharePercentage);
+                found = true;
+                break;
+              }
             }
           }
 

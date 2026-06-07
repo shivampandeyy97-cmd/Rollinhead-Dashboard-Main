@@ -11,8 +11,65 @@ import * as bcrypt from 'bcrypt';
 export class PublishersService {
   constructor(private prisma: PrismaService) {}
 
+  private getActiveSharePercentageForDate(configs: any[], date: Date): number {
+    const dReport = new Date(date);
+    const reportDateStr = `${dReport.getUTCFullYear()}-${String(dReport.getUTCMonth() + 1).padStart(2, '0')}-${String(dReport.getUTCDate()).padStart(2, '0')}`;
+
+    const adminConfigs: any[] = [];
+    const defaultConfigs: any[] = [];
+
+    for (const config of configs) {
+      const isPublisher = config.creator?.role === 'PUBLISHER';
+      if (isPublisher) {
+        defaultConfigs.push(config);
+      } else {
+        adminConfigs.push(config);
+      }
+    }
+
+    const sortByEffectiveFromDesc = (a: any, b: any) => {
+      return new Date(b.effectiveFrom).getTime() - new Date(a.effectiveFrom).getTime();
+    };
+    adminConfigs.sort(sortByEffectiveFromDesc);
+    defaultConfigs.sort(sortByEffectiveFromDesc);
+
+    for (const config of adminConfigs) {
+      const dFrom = new Date(config.effectiveFrom);
+      const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
+      
+      const effectiveToStr = config.effectiveTo
+        ? (() => {
+            const dTo = new Date(config.effectiveTo);
+            return `${dTo.getUTCFullYear()}-${String(dTo.getUTCMonth() + 1).padStart(2, '0')}-${String(dTo.getUTCDate()).padStart(2, '0')}`;
+          })()
+        : null;
+
+      if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
+        return Number(config.sharePercentage);
+      }
+    }
+
+    for (const config of defaultConfigs) {
+      const dFrom = new Date(config.effectiveFrom);
+      const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
+      
+      const effectiveToStr = config.effectiveTo
+        ? (() => {
+            const dTo = new Date(config.effectiveTo);
+            return `${dTo.getUTCFullYear()}-${String(dTo.getUTCMonth() + 1).padStart(2, '0')}-${String(dTo.getUTCDate()).padStart(2, '0')}`;
+          })()
+        : null;
+
+      if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
+        return Number(config.sharePercentage);
+      }
+    }
+
+    return 80.0;
+  }
+
   async findAll() {
-    return this.prisma.publisher.findMany({
+    const publishers = await this.prisma.publisher.findMany({
       include: {
         user: {
           select: {
@@ -32,10 +89,24 @@ export class PublishersService {
           },
         },
         revenueShareConfigs: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
+          include: {
+            creator: {
+              select: { role: true },
+            },
+          },
+          orderBy: { effectiveFrom: 'desc' },
         },
       },
+    });
+
+    return publishers.map((pub) => {
+      const activePct = this.getActiveSharePercentageForDate(pub.revenueShareConfigs, new Date());
+      const activeConfig = pub.revenueShareConfigs.find(c => Number(c.sharePercentage) === activePct) || pub.revenueShareConfigs[0];
+      const otherConfigs = pub.revenueShareConfigs.filter(c => c.id !== activeConfig?.id);
+      return {
+        ...pub,
+        revenueShareConfigs: activeConfig ? [activeConfig, ...otherConfigs] : [],
+      };
     });
   }
 
@@ -57,6 +128,11 @@ export class PublishersService {
           },
         },
         revenueShareConfigs: {
+          include: {
+            creator: {
+              select: { role: true },
+            },
+          },
           orderBy: { effectiveFrom: 'desc' },
         },
       },
@@ -66,7 +142,14 @@ export class PublishersService {
       throw new NotFoundException(`Publisher not found`);
     }
 
-    return publisher;
+    const activePct = this.getActiveSharePercentageForDate(publisher.revenueShareConfigs, new Date());
+    const activeConfig = publisher.revenueShareConfigs.find(c => Number(c.sharePercentage) === activePct) || publisher.revenueShareConfigs[0];
+    const otherConfigs = publisher.revenueShareConfigs.filter(c => c.id !== activeConfig?.id);
+
+    return {
+      ...publisher,
+      revenueShareConfigs: activeConfig ? [activeConfig, ...otherConfigs] : [],
+    };
   }
 
   async update(
@@ -169,6 +252,11 @@ export class PublishersService {
     // 1. Get all revenue configs for the publisher ordered by effectiveFrom desc
     const configs = await tx.revenueShareConfig.findMany({
       where: { publisherId },
+      include: {
+        creator: {
+          select: { role: true },
+        },
+      },
       orderBy: { effectiveFrom: 'desc' },
     });
 
@@ -196,8 +284,13 @@ export class PublishersService {
       const reportDateStr = `${dReport.getUTCFullYear()}-${String(dReport.getUTCMonth() + 1).padStart(2, '0')}-${String(dReport.getUTCDate()).padStart(2, '0')}`;
       let activeShare = 80.0; // Fallback default
 
-      // Find active config for this date
-      for (const config of configs) {
+      const adminConfigs = configs.filter((c: any) => c.creator?.role !== 'PUBLISHER');
+      const defaultConfigs = configs.filter((c: any) => c.creator?.role === 'PUBLISHER');
+
+      let found = false;
+
+      // First try to match admin configs
+      for (const config of adminConfigs) {
         const dFrom = new Date(config.effectiveFrom);
         const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
         
@@ -210,7 +303,29 @@ export class PublishersService {
 
         if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
           activeShare = Number(config.sharePercentage);
+          found = true;
           break;
+        }
+      }
+
+      // If no admin config matched, try default configs
+      if (!found) {
+        for (const config of defaultConfigs) {
+          const dFrom = new Date(config.effectiveFrom);
+          const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
+          
+          const effectiveToStr = config.effectiveTo
+            ? (() => {
+                const dTo = new Date(config.effectiveTo);
+                return `${dTo.getUTCFullYear()}-${String(dTo.getUTCMonth() + 1).padStart(2, '0')}-${String(dTo.getUTCDate()).padStart(2, '0')}`;
+              })()
+            : null;
+
+          if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
+            activeShare = Number(config.sharePercentage);
+            found = true;
+            break;
+          }
         }
       }
 

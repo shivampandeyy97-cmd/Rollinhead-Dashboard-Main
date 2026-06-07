@@ -87,10 +87,22 @@ async function main() {
     reports.push(report);
   }
 
-  // Create Revenue Share Config
+  // Create a default publisher configuration (created by publisher user, representing registration default)
+  // E.g., 80% starting on 2026-06-04
+  console.log('📌 Creating default publisher rev share config: 80% starting on 2026-06-04');
+  await prisma.revenueShareConfig.create({
+    data: {
+      publisherId: publisher.id,
+      sharePercentage: 80.0,
+      effectiveFrom: new Date('2026-06-04'),
+      createdBy: pubUser.id,
+    },
+  });
+
+  // Create Admin Revenue Share Config
   // percentage: 70.0 (30% margin)
   // range: 2026-06-03 to 2026-06-05
-  console.log('📌 Creating rev share config: 70% from 2026-06-03 to 2026-06-05');
+  console.log('📌 Creating admin rev share config: 70% from 2026-06-03 to 2026-06-05');
   const service = new PublishersService(prisma as any);
   await service.addRevenueShareConfig(publisher.id, {
     sharePercentage: 70.0,
