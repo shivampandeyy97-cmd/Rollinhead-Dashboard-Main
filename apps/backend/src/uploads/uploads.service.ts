@@ -317,12 +317,32 @@ export class UploadsService {
     // Bulk insert inside a transaction
     try {
       if (reportsToInsert.length > 0) {
-        // Chunk inserts to prevent query size limits
-        const chunkSize = 100;
-        for (let i = 0; i < reportsToInsert.length; i += chunkSize) {
-          const chunk = reportsToInsert.slice(i, i + chunkSize);
-          await this.prisma.revenueReport.createMany({ data: chunk });
-        }
+        await this.prisma.$transaction(async (tx) => {
+          // 1. Deduplicate by deleting existing reports matching the same website, date, country, and device
+          const deleteConditions = reportsToInsert.map((r) => ({
+            websiteId: r.websiteId,
+            reportDate: r.reportDate,
+            country: r.country,
+            device: r.device,
+          }));
+
+          const deleteChunkSize = 100;
+          for (let i = 0; i < deleteConditions.length; i += deleteChunkSize) {
+            const chunk = deleteConditions.slice(i, i + deleteChunkSize);
+            await tx.revenueReport.deleteMany({
+              where: {
+                OR: chunk,
+              },
+            });
+          }
+
+          // 2. Bulk insert chunked reports
+          const chunkSize = 100;
+          for (let i = 0; i < reportsToInsert.length; i += chunkSize) {
+            const chunk = reportsToInsert.slice(i, i + chunkSize);
+            await tx.revenueReport.createMany({ data: chunk });
+          }
+        });
       }
 
       // Update upload status

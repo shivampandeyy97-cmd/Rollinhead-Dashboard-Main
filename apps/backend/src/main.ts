@@ -153,6 +153,39 @@ async function bootstrap() {
       console.log('[STARTUP] Verified contact@rollinhead.com credentials are set correctly');
     }
     
+    // 2.5 Deduplicate any duplicate reports in the database
+    try {
+      console.log('[STARTUP] Deduplicating reports in database...');
+      const allReports = await prismaInstance.revenueReport.findMany({
+        orderBy: { createdAt: 'asc' }
+      });
+      const seen = new Set<string>();
+      const idsToDelete: string[] = [];
+
+      for (const r of allReports) {
+        const key = `${r.websiteId}_${r.reportDate.toISOString()}_${r.country}_${r.device}`;
+        if (seen.has(key)) {
+          idsToDelete.push(r.id);
+        } else {
+          seen.add(key);
+        }
+      }
+
+      if (idsToDelete.length > 0) {
+        console.log(`[STARTUP] Deleting ${idsToDelete.length} duplicate report records...`);
+        const chunkSize = 100;
+        for (let i = 0; i < idsToDelete.length; i += chunkSize) {
+          const chunk = idsToDelete.slice(i, i + chunkSize);
+          await prismaInstance.revenueReport.deleteMany({
+            where: { id: { in: chunk } }
+          });
+        }
+      }
+      console.log('[STARTUP] Deduplication complete.');
+    } catch (dedupError) {
+      console.error('[STARTUP] Error during report deduplication:', dedupError);
+    }
+    
     // 3. Recalculate reports for all publishers to clean up any past date/timezone matching errors
     try {
       console.log('[STARTUP] Recalculating reports for all publishers to apply correct date boundaries...');
