@@ -80,18 +80,21 @@ export class NotificationsService {
       );
 
       // Log warning in DB
-      await this.prisma.auditLog.create({
-        data: {
-          userId: notification.createdBy,
-          action: 'EMAIL_ANNOUNCEMENT_SKIPPED_SMTP_NOT_CONFIGURED',
-          entity: 'Notification',
-          entityId: notification.id,
-          newValue: {
-            reason: 'SMTP_PASS (Resend API Key) environment variable is missing.',
-            recipientsCount: users.length,
+      await this.prisma.auditLog
+        .create({
+          data: {
+            userId: notification.createdBy,
+            action: 'EMAIL_ANNOUNCEMENT_SKIPPED_SMTP_NOT_CONFIGURED',
+            entity: 'Notification',
+            entityId: notification.id,
+            newValue: {
+              reason:
+                'SMTP_PASS (Resend API Key) environment variable is missing.',
+              recipientsCount: users.length,
+            },
           },
-        },
-      }).catch((e) => console.error('Failed to log email skip to DB:', e));
+        })
+        .catch((e) => console.error('Failed to log email skip to DB:', e));
 
       return;
     }
@@ -103,7 +106,7 @@ export class NotificationsService {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${pass}`,
+            Authorization: `Bearer ${pass}`,
           },
           body: JSON.stringify({
             from,
@@ -129,38 +132,43 @@ export class NotificationsService {
 
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`Resend HTTP API returned status ${response.status}: ${errorText}`);
+          throw new Error(
+            `Resend HTTP API returned status ${response.status}: ${errorText}`,
+          );
         }
 
         const resData = await response.json();
 
         // Log success in AuditLog
-        await this.prisma.auditLog.create({
-          data: {
-            userId: notification.createdBy,
-            action: 'EMAIL_ANNOUNCEMENT_SENT_SUCCESS',
-            entity: 'Notification',
-            entityId: notification.id,
-            newValue: { recipient: u.email, resendId: resData.id },
-          },
-        }).catch((e) => console.error('Failed to log email success to DB:', e));
-
+        await this.prisma.auditLog
+          .create({
+            data: {
+              userId: notification.createdBy,
+              action: 'EMAIL_ANNOUNCEMENT_SENT_SUCCESS',
+              entity: 'Notification',
+              entityId: notification.id,
+              newValue: { recipient: u.email, resendId: resData.id },
+            },
+          })
+          .catch((e) => console.error('Failed to log email success to DB:', e));
       } catch (mailErr: any) {
         console.error(`Failed to send email to ${u.email}:`, mailErr);
 
         // Log failure in AuditLog
-        await this.prisma.auditLog.create({
-          data: {
-            userId: notification.createdBy,
-            action: 'EMAIL_ANNOUNCEMENT_SENT_FAILURE',
-            entity: 'Notification',
-            entityId: notification.id,
-            newValue: {
-              recipient: u.email,
-              error: mailErr.message || String(mailErr),
+        await this.prisma.auditLog
+          .create({
+            data: {
+              userId: notification.createdBy,
+              action: 'EMAIL_ANNOUNCEMENT_SENT_FAILURE',
+              entity: 'Notification',
+              entityId: notification.id,
+              newValue: {
+                recipient: u.email,
+                error: mailErr.message || String(mailErr),
+              },
             },
-          },
-        }).catch((e) => console.error('Failed to log email failure to DB:', e));
+          })
+          .catch((e) => console.error('Failed to log email failure to DB:', e));
       }
     });
 

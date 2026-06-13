@@ -105,12 +105,7 @@ export class ReportsController {
 
     // Headers
     const headers = isPublisher
-      ? [
-          'Dimension',
-          'Impressions',
-          'Net Revenue ($)',
-          'Net CPM ($)',
-        ]
+      ? ['Dimension', 'Impressions', 'Net Revenue ($)', 'Net CPM ($)']
       : [
           'Dimension',
           'Impressions',

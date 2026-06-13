@@ -28,7 +28,10 @@ export class PublishersService {
     }
 
     const sortByEffectiveFromDesc = (a: any, b: any) => {
-      return new Date(b.effectiveFrom).getTime() - new Date(a.effectiveFrom).getTime();
+      return (
+        new Date(b.effectiveFrom).getTime() -
+        new Date(a.effectiveFrom).getTime()
+      );
     };
     adminConfigs.sort(sortByEffectiveFromDesc);
     defaultConfigs.sort(sortByEffectiveFromDesc);
@@ -36,7 +39,7 @@ export class PublishersService {
     for (const config of adminConfigs) {
       const dFrom = new Date(config.effectiveFrom);
       const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
-      
+
       const effectiveToStr = config.effectiveTo
         ? (() => {
             const dTo = new Date(config.effectiveTo);
@@ -44,7 +47,10 @@ export class PublishersService {
           })()
         : null;
 
-      if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
+      if (
+        reportDateStr >= effectiveFromStr &&
+        (!effectiveToStr || reportDateStr <= effectiveToStr)
+      ) {
         return Number(config.sharePercentage);
       }
     }
@@ -52,7 +58,7 @@ export class PublishersService {
     for (const config of defaultConfigs) {
       const dFrom = new Date(config.effectiveFrom);
       const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
-      
+
       const effectiveToStr = config.effectiveTo
         ? (() => {
             const dTo = new Date(config.effectiveTo);
@@ -60,7 +66,10 @@ export class PublishersService {
           })()
         : null;
 
-      if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
+      if (
+        reportDateStr >= effectiveFromStr &&
+        (!effectiveToStr || reportDateStr <= effectiveToStr)
+      ) {
         return Number(config.sharePercentage);
       }
     }
@@ -100,12 +109,22 @@ export class PublishersService {
     });
 
     return publishers.map((pub) => {
-      const activePct = this.getActiveSharePercentageForDate(pub.revenueShareConfigs, new Date());
-      const activeConfig = pub.revenueShareConfigs.find(c => Number(c.sharePercentage) === activePct) || pub.revenueShareConfigs[0];
-      const otherConfigs = pub.revenueShareConfigs.filter(c => c.id !== activeConfig?.id);
+      const activePct = this.getActiveSharePercentageForDate(
+        pub.revenueShareConfigs,
+        new Date(),
+      );
+      const activeConfig =
+        pub.revenueShareConfigs.find(
+          (c) => Number(c.sharePercentage) === activePct,
+        ) || pub.revenueShareConfigs[0];
+      const otherConfigs = pub.revenueShareConfigs.filter(
+        (c) => c.id !== activeConfig?.id,
+      );
       return {
         ...pub,
-        revenueShareConfigs: activeConfig ? [activeConfig, ...otherConfigs] : [],
+        revenueShareConfigs: activeConfig
+          ? [activeConfig, ...otherConfigs]
+          : [],
       };
     });
   }
@@ -142,9 +161,17 @@ export class PublishersService {
       throw new NotFoundException(`Publisher not found`);
     }
 
-    const activePct = this.getActiveSharePercentageForDate(publisher.revenueShareConfigs, new Date());
-    const activeConfig = publisher.revenueShareConfigs.find(c => Number(c.sharePercentage) === activePct) || publisher.revenueShareConfigs[0];
-    const otherConfigs = publisher.revenueShareConfigs.filter(c => c.id !== activeConfig?.id);
+    const activePct = this.getActiveSharePercentageForDate(
+      publisher.revenueShareConfigs,
+      new Date(),
+    );
+    const activeConfig =
+      publisher.revenueShareConfigs.find(
+        (c) => Number(c.sharePercentage) === activePct,
+      ) || publisher.revenueShareConfigs[0];
+    const otherConfigs = publisher.revenueShareConfigs.filter(
+      (c) => c.id !== activeConfig?.id,
+    );
 
     return {
       ...publisher,
@@ -284,8 +311,12 @@ export class PublishersService {
       const reportDateStr = `${dReport.getUTCFullYear()}-${String(dReport.getUTCMonth() + 1).padStart(2, '0')}-${String(dReport.getUTCDate()).padStart(2, '0')}`;
       let activeShare = 80.0; // Fallback default
 
-      const adminConfigs = configs.filter((c: any) => c.creator?.role !== 'PUBLISHER');
-      const defaultConfigs = configs.filter((c: any) => c.creator?.role === 'PUBLISHER');
+      const adminConfigs = configs.filter(
+        (c: any) => c.creator?.role !== 'PUBLISHER',
+      );
+      const defaultConfigs = configs.filter(
+        (c: any) => c.creator?.role === 'PUBLISHER',
+      );
 
       let found = false;
 
@@ -293,7 +324,7 @@ export class PublishersService {
       for (const config of adminConfigs) {
         const dFrom = new Date(config.effectiveFrom);
         const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
-        
+
         const effectiveToStr = config.effectiveTo
           ? (() => {
               const dTo = new Date(config.effectiveTo);
@@ -301,7 +332,10 @@ export class PublishersService {
             })()
           : null;
 
-        if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
+        if (
+          reportDateStr >= effectiveFromStr &&
+          (!effectiveToStr || reportDateStr <= effectiveToStr)
+        ) {
           activeShare = Number(config.sharePercentage);
           found = true;
           break;
@@ -313,7 +347,7 @@ export class PublishersService {
         for (const config of defaultConfigs) {
           const dFrom = new Date(config.effectiveFrom);
           const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
-          
+
           const effectiveToStr = config.effectiveTo
             ? (() => {
                 const dTo = new Date(config.effectiveTo);
@@ -321,7 +355,10 @@ export class PublishersService {
               })()
             : null;
 
-          if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
+          if (
+            reportDateStr >= effectiveFromStr &&
+            (!effectiveToStr || reportDateStr <= effectiveToStr)
+          ) {
             activeShare = Number(config.sharePercentage);
             found = true;
             break;
@@ -331,7 +368,7 @@ export class PublishersService {
 
       const grossRev = Number(report.grossRevenue);
       const imps = Number(report.impressions);
-      
+
       const newNetRevenue = grossRev * (activeShare / 100);
       const newNetCpm = imps > 0 ? (newNetRevenue / imps) * 1000 : 0;
 
@@ -421,6 +458,54 @@ export class PublishersService {
           },
         },
       },
+    });
+  }
+
+  async delete(id: string) {
+    const publisher = await this.prisma.publisher.findUnique({
+      where: { id },
+    });
+    if (!publisher) {
+      throw new NotFoundException(`Publisher not found`);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Delete websites (which cascades tags and reports)
+      await tx.website.deleteMany({
+        where: { publisherId: id },
+      });
+
+      // 2. Delete revenue share configs
+      await tx.revenueShareConfig.deleteMany({
+        where: { publisherId: id },
+      });
+
+      // 3. Delete dependent user logs/records
+      await tx.auditLog.deleteMany({
+        where: { userId: publisher.userId },
+      });
+
+      await tx.notificationRead.deleteMany({
+        where: { userId: publisher.userId },
+      });
+
+      await tx.uploadLog.deleteMany({
+        where: { uploadedBy: publisher.userId },
+      });
+
+      // 4. Delete publisher profile
+      await tx.publisher.delete({
+        where: { id },
+      });
+
+      // 5. Delete user account
+      await tx.user.delete({
+        where: { id: publisher.userId },
+      });
+
+      return {
+        message: 'Publisher and associated user account deleted successfully',
+      };
     });
   }
 }

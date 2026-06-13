@@ -10,7 +10,7 @@ import csv from 'csv-parser';
 
 function parseDateAsUtc(dateStr: string): Date {
   const clean = dateStr.trim();
-  
+
   // 1. Try YYYY-MM-DD or YYYY/MM/DD
   let match = clean.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
   if (match) {
@@ -34,11 +34,11 @@ function parseDateAsUtc(dateStr: string): Date {
   if (isNaN(d.getTime())) {
     throw new Error(`Invalid date format: ${dateStr}`);
   }
-  
+
   if (!clean.includes('T') && !clean.includes(':')) {
     return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   }
-  
+
   return d;
 }
 
@@ -189,24 +189,36 @@ export class UploadsService {
         const impressionsStr = cleanRow['impressions'] || '';
 
         // Validation
-        if (!dateStr || !publisherVal || !websiteVal || !revenueStr || !impressionsStr) {
-          throw new Error(`Missing required fields. Row must contain Date, Publisher, Website, Revenue, and Impressions.`);
+        if (
+          !dateStr ||
+          !publisherVal ||
+          !websiteVal ||
+          !revenueStr ||
+          !impressionsStr
+        ) {
+          throw new Error(
+            `Missing required fields. Row must contain Date, Publisher, Website, Revenue, and Impressions.`,
+          );
         }
 
         const publisher = publisherMap.get(publisherVal.toLowerCase().trim());
         if (!publisher) {
-          throw new Error(`Publisher '${publisherVal}' is not registered in our system`);
+          throw new Error(
+            `Publisher '${publisherVal}' is not registered in our system`,
+          );
         }
 
         const website = websiteMap.get(websiteVal.toLowerCase().trim());
         if (!website) {
-          throw new Error(`Website domain '${websiteVal}' is not registered in our system`);
+          throw new Error(
+            `Website domain '${websiteVal}' is not registered in our system`,
+          );
         }
 
         // Strict validation: Website must belong to the Publisher
         if (website.publisherId !== publisher.id) {
           throw new Error(
-            `Website domain '${websiteVal}' belongs to another publisher and cannot be uploaded under Publisher '${publisherVal}'`
+            `Website domain '${websiteVal}' belongs to another publisher and cannot be uploaded under Publisher '${publisherVal}'`,
           );
         }
 
@@ -233,8 +245,12 @@ export class UploadsService {
         const dReport = new Date(reportDate);
         const reportDateStr = `${dReport.getUTCFullYear()}-${String(dReport.getUTCMonth() + 1).padStart(2, '0')}-${String(dReport.getUTCDate()).padStart(2, '0')}`;
 
-        const adminConfigs = configs.filter((c: any) => c.creator?.role !== 'PUBLISHER');
-        const defaultConfigs = configs.filter((c: any) => c.creator?.role === 'PUBLISHER');
+        const adminConfigs = configs.filter(
+          (c: any) => c.creator?.role !== 'PUBLISHER',
+        );
+        const defaultConfigs = configs.filter(
+          (c: any) => c.creator?.role === 'PUBLISHER',
+        );
 
         let found = false;
 
@@ -242,7 +258,7 @@ export class UploadsService {
         for (const config of adminConfigs) {
           const dFrom = new Date(config.effectiveFrom);
           const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
-          
+
           const effectiveToStr = config.effectiveTo
             ? (() => {
                 const dTo = new Date(config.effectiveTo);
@@ -265,7 +281,7 @@ export class UploadsService {
           for (const config of defaultConfigs) {
             const dFrom = new Date(config.effectiveFrom);
             const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
-            
+
             const effectiveToStr = config.effectiveTo
               ? (() => {
                   const dTo = new Date(config.effectiveTo);

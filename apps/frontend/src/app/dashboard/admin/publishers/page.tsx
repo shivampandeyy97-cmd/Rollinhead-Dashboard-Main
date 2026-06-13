@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../../lib/api';
-import { Loader2, UserPlus, Edit3, Key, Percent, ShieldCheck, CheckCircle2, AlertTriangle, Eye, X, Globe, Tag } from 'lucide-react';
+import { Loader2, UserPlus, Edit3, Key, Percent, ShieldCheck, CheckCircle2, AlertTriangle, Eye, X, Globe, Tag, Trash2 } from 'lucide-react';
 import { PaymentCycle, PublisherStatus } from '@rollinhead/types';
 
 export default function AdminPublishersPage() {
@@ -24,7 +24,7 @@ export default function AdminPublishersPage() {
   const currentPublishers = useMock ? mockPublishers : (publishers || []);
 
   // Modals state
-  const [activeModal, setActiveModal] = useState<'create' | 'edit' | 'rev-share' | 'password' | 'add-website' | 'purge-db' | null>(null);
+  const [activeModal, setActiveModal] = useState<'create' | 'edit' | 'rev-share' | 'password' | 'add-website' | null>(null);
   const [selectedPub, setSelectedPub] = useState<any>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -154,30 +154,31 @@ export default function AdminPublishersPage() {
     setActiveModal('add-tag' as any);
   };
 
-  const [purgePassword, setPurgePassword] = useState('');
-
-  const purgeDbMutation = useMutation({
-    mutationFn: (data: { password: string }) => api.post('/auth/purge-db', data),
+  const deletePublisherMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/publishers/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-publishers'] });
-      setFeedback('Live production database cleared successfully!');
-      setActiveModal(null);
-      setPurgePassword('');
-      setTimeout(() => {
-        setFeedback(null);
-        window.location.reload();
-      }, 2000);
+      setFeedback('Publisher and user account deleted successfully!');
+      setTimeout(() => setFeedback(null), 3000);
     },
     onError: (err: any) => {
-      setFeedback(err.message || 'Failed to purge database.');
+      setFeedback(err.message || 'Failed to delete publisher.');
       setTimeout(() => setFeedback(null), 4000);
     }
   });
 
-  const handlePurgeDb = () => {
-    setPurgePassword('');
-    setActiveModal('purge-db');
-  };
+  const deleteWebsiteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/websites/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-publishers'] });
+      setFeedback('Website deleted successfully!');
+      setTimeout(() => setFeedback(null), 3000);
+    },
+    onError: (err: any) => {
+      setFeedback(err.message || 'Failed to delete website.');
+      setTimeout(() => setFeedback(null), 4000);
+    }
+  });
 
   const clearForms = () => {
     setEmail('');
@@ -243,16 +244,6 @@ export default function AdminPublishersPage() {
         </div>
 
         <div className="flex items-center gap-3 self-start md:self-auto">
-          {/* Reset Production DB */}
-          <button
-            onClick={handlePurgeDb}
-            disabled={purgeDbMutation.isPending}
-            className="flex items-center justify-center space-x-2 bg-white border border-red-200 hover:bg-red-50 text-[#e50914] px-4 py-3 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm disabled:opacity-50 animate-fade-in"
-            title="Wipe all data tables in production cloud"
-          >
-            <span>{purgeDbMutation.isPending ? 'Purging DB...' : 'Reset Live Database'}</span>
-          </button>
-
           <button
             onClick={() => {
               clearForms();
@@ -357,6 +348,20 @@ export default function AdminPublishersPage() {
                                   <span className="text-[9px] text-slate-600 font-bold select-all">
                                     {w.domain}
                                   </span>
+
+                                  {/* Remove Website Button */}
+                                  <button
+                                    onClick={() => {
+                                      if (confirm(`Are you sure you want to delete ${w.domain}? All associated tags and revenue reports will be permanently deleted.`)) {
+                                        deleteWebsiteMutation.mutate(w.id);
+                                      }
+                                    }}
+                                    disabled={deleteWebsiteMutation.isPending}
+                                    className="p-0.5 text-slate-400 hover:text-[#e50914] hover:bg-red-50 bg-white border border-slate-200/60 rounded transition-all cursor-pointer focus:outline-none disabled:opacity-50"
+                                    title={`Delete ${w.domain}`}
+                                  >
+                                    <span className="text-[8px] font-bold leading-none px-0.5">✕</span>
+                                  </button>
                                 </div>
                               ))}
                             </div>
@@ -412,6 +417,19 @@ export default function AdminPublishersPage() {
                           <Key className="h-3.5 w-3.5" />
                         </button>
 
+                        {/* Delete Publisher */}
+                        <button
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete publisher ${pub.companyName}? This will permanently delete their account, dashboard access, websites, tags, and all performance reports. This is irreversible!`)) {
+                              deletePublisherMutation.mutate(pub.id);
+                            }
+                          }}
+                          disabled={deletePublisherMutation.isPending}
+                          className="p-2 bg-white border border-slate-200 text-slate-500 hover:text-[#e50914] hover:border-red-200 hover:bg-red-50/30 rounded-lg transition-all cursor-pointer focus:outline-none shadow-sm disabled:opacity-50"
+                          title="Delete Publisher Account"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -772,64 +790,7 @@ export default function AdminPublishersPage() {
       )}
 
       {/* 6. Purge / Reset Database Modal */}
-      {activeModal === 'purge-db' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
-          <div className="w-full max-w-md bg-white border border-slate-100 rounded-2xl p-6 relative shadow-2xl">
-            <button 
-              onClick={() => setActiveModal(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 cursor-pointer"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <h3 className="text-base font-black text-slate-950 tracking-tight mb-4 flex items-center space-x-2">
-              <AlertTriangle className="h-5 w-5 text-[#e50914]" />
-              <span>Confirm Production Database Purge</span>
-            </h3>
-            
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              purgeDbMutation.mutate({ password: purgePassword });
-            }} className="space-y-4 text-left">
-              <div className="bg-red-50 border border-red-150 p-4 rounded-xl flex items-start space-x-2 text-xs text-red-800 leading-relaxed font-bold">
-                <AlertTriangle className="h-6 w-6 flex-shrink-0 text-[#e50914]" />
-                <span>
-                  ⚠️ WARNING: This operation permanently deletes all publisher profiles, linked websites, active tags, and performance reports. This action is irreversible.
-                </span>
-              </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Enter Administrator Password</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Verify your active password"
-                  value={purgePassword}
-                  onChange={(e) => setPurgePassword(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:border-red-200 rounded-lg py-2.5 px-3 text-xs"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg text-xs tracking-wider uppercase cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={purgeDbMutation.isPending}
-                  className="w-1/2 bg-[#e50914] hover:bg-[#c20811] text-white font-bold py-2.5 rounded-lg text-xs tracking-wider uppercase cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
-                >
-                  {purgeDbMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  <span>{purgeDbMutation.isPending ? 'Purging...' : 'Confirm Purge'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* 7. Add Tag Modal */}
       {activeModal === ('add-tag' as any) && selectedSite && (

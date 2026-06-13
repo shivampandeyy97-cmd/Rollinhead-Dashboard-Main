@@ -22,7 +22,9 @@ async function bootstrap() {
     'https://frontend-production-aae5.up.railway.app',
   ];
   if (process.env.CORS_ORIGIN) {
-    const extraOrigins = process.env.CORS_ORIGIN.split(',').map((o) => o.trim());
+    const extraOrigins = process.env.CORS_ORIGIN.split(',').map((o) =>
+      o.trim(),
+    );
     allowedOrigins.push(...extraOrigins);
   }
 
@@ -55,10 +57,10 @@ async function bootstrap() {
   try {
     const prismaInstance = new PrismaClient();
     console.log('[STARTUP] Checking admin credentials in database...');
-    
+
     // Hash target password
     const targetHash = await bcrypt.hash('admin123', 10);
-    
+
     // 1. Find the old admin accounts
     const oldEmails = ['admin@rollinhead.com', 'admin@rollinehead.com'];
     for (const oldEmail of oldEmails) {
@@ -66,7 +68,9 @@ async function bootstrap() {
         where: { email: oldEmail },
       });
       if (oldUser) {
-        console.log(`[STARTUP] Found old admin account: ${oldEmail}. Updating to contact@rollinhead.com...`);
+        console.log(
+          `[STARTUP] Found old admin account: ${oldEmail}. Updating to contact@rollinhead.com...`,
+        );
         // Check if contact@rollinhead.com already exists
         const contactUser = await prismaInstance.user.findUnique({
           where: { email: 'contact@rollinhead.com' },
@@ -107,7 +111,9 @@ async function bootstrap() {
             await prismaInstance.user.delete({
               where: { id: oldUser.id },
             });
-            console.log(`[STARTUP] Safely merged and deleted duplicate admin ${oldEmail}`);
+            console.log(
+              `[STARTUP] Safely merged and deleted duplicate admin ${oldEmail}`,
+            );
           }
         } else {
           // Just change email of oldUser
@@ -120,7 +126,9 @@ async function bootstrap() {
               isActive: true,
             },
           });
-          console.log(`[STARTUP] Successfully updated admin ${oldEmail} to contact@rollinhead.com`);
+          console.log(
+            `[STARTUP] Successfully updated admin ${oldEmail} to contact@rollinhead.com`,
+          );
         }
       }
     }
@@ -150,14 +158,16 @@ async function bootstrap() {
           isActive: true,
         },
       });
-      console.log('[STARTUP] Verified contact@rollinhead.com credentials are set correctly');
+      console.log(
+        '[STARTUP] Verified contact@rollinhead.com credentials are set correctly',
+      );
     }
-    
+
     // 2.5 Deduplicate any duplicate reports in the database
     try {
       console.log('[STARTUP] Deduplicating reports in database...');
       const allReports = await prismaInstance.revenueReport.findMany({
-        orderBy: { createdAt: 'asc' }
+        orderBy: { createdAt: 'asc' },
       });
       const seen = new Set<string>();
       const idsToDelete: string[] = [];
@@ -172,12 +182,14 @@ async function bootstrap() {
       }
 
       if (idsToDelete.length > 0) {
-        console.log(`[STARTUP] Deleting ${idsToDelete.length} duplicate report records...`);
+        console.log(
+          `[STARTUP] Deleting ${idsToDelete.length} duplicate report records...`,
+        );
         const chunkSize = 100;
         for (let i = 0; i < idsToDelete.length; i += chunkSize) {
           const chunk = idsToDelete.slice(i, i + chunkSize);
           await prismaInstance.revenueReport.deleteMany({
-            where: { id: { in: chunk } }
+            where: { id: { in: chunk } },
           });
         }
       }
@@ -185,12 +197,14 @@ async function bootstrap() {
     } catch (dedupError) {
       console.error('[STARTUP] Error during report deduplication:', dedupError);
     }
-    
+
     // 3. Recalculate reports for all publishers to clean up any past date/timezone matching errors
     try {
-      console.log('[STARTUP] Recalculating reports for all publishers to apply correct date boundaries...');
+      console.log(
+        '[STARTUP] Recalculating reports for all publishers to apply correct date boundaries...',
+      );
       const publishers = await prismaInstance.publisher.findMany({
-        select: { id: true }
+        select: { id: true },
       });
       for (const pub of publishers) {
         console.log(`[STARTUP] Recalculating reports for publisher: ${pub.id}`);
@@ -198,8 +212,8 @@ async function bootstrap() {
           where: { publisherId: pub.id },
           include: {
             creator: {
-              select: { role: true }
-            }
+              select: { role: true },
+            },
           },
           orderBy: { effectiveFrom: 'desc' },
         });
@@ -223,8 +237,12 @@ async function bootstrap() {
           const reportDateStr = `${dReport.getUTCFullYear()}-${String(dReport.getUTCMonth() + 1).padStart(2, '0')}-${String(dReport.getUTCDate()).padStart(2, '0')}`;
           let activeShare = 80.0;
 
-          const adminConfigs = configs.filter((c: any) => c.creator?.role !== 'PUBLISHER');
-          const defaultConfigs = configs.filter((c: any) => c.creator?.role === 'PUBLISHER');
+          const adminConfigs = configs.filter(
+            (c: any) => c.creator?.role !== 'PUBLISHER',
+          );
+          const defaultConfigs = configs.filter(
+            (c: any) => c.creator?.role === 'PUBLISHER',
+          );
 
           let found = false;
 
@@ -232,7 +250,7 @@ async function bootstrap() {
           for (const config of adminConfigs) {
             const dFrom = new Date(config.effectiveFrom);
             const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
-            
+
             const effectiveToStr = config.effectiveTo
               ? (() => {
                   const dTo = new Date(config.effectiveTo);
@@ -240,7 +258,10 @@ async function bootstrap() {
                 })()
               : null;
 
-            if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
+            if (
+              reportDateStr >= effectiveFromStr &&
+              (!effectiveToStr || reportDateStr <= effectiveToStr)
+            ) {
               activeShare = Number(config.sharePercentage);
               found = true;
               break;
@@ -252,7 +273,7 @@ async function bootstrap() {
             for (const config of defaultConfigs) {
               const dFrom = new Date(config.effectiveFrom);
               const effectiveFromStr = `${dFrom.getUTCFullYear()}-${String(dFrom.getUTCMonth() + 1).padStart(2, '0')}-${String(dFrom.getUTCDate()).padStart(2, '0')}`;
-              
+
               const effectiveToStr = config.effectiveTo
                 ? (() => {
                     const dTo = new Date(config.effectiveTo);
@@ -260,7 +281,10 @@ async function bootstrap() {
                   })()
                 : null;
 
-              if (reportDateStr >= effectiveFromStr && (!effectiveToStr || reportDateStr <= effectiveToStr)) {
+              if (
+                reportDateStr >= effectiveFromStr &&
+                (!effectiveToStr || reportDateStr <= effectiveToStr)
+              ) {
                 activeShare = Number(config.sharePercentage);
                 found = true;
                 break;
@@ -284,12 +308,18 @@ async function bootstrap() {
       }
       console.log('[STARTUP] Recalculation complete.');
     } catch (recalcError) {
-      console.error('[STARTUP] Error during database recalculation:', recalcError);
+      console.error(
+        '[STARTUP] Error during database recalculation:',
+        recalcError,
+      );
     }
-    
+
     await prismaInstance.$disconnect();
   } catch (startupError) {
-    console.error('[STARTUP] Error verifying/running admin credentials startup update:', startupError);
+    console.error(
+      '[STARTUP] Error verifying/running admin credentials startup update:',
+      startupError,
+    );
   }
 
   const port = process.env.PORT || 4000;

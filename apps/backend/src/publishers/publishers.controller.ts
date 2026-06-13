@@ -8,6 +8,7 @@ import {
   UseGuards,
   Req,
   BadRequestException,
+  Delete,
 } from '@nestjs/common';
 import { PublishersService } from './publishers.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -17,7 +18,7 @@ import { UserRole, PublisherStatus, PaymentCycle } from '@prisma/client';
 
 function parseDateAsUtc(dateStr: string): Date {
   const clean = dateStr.trim();
-  
+
   // 1. Try YYYY-MM-DD or YYYY/MM/DD
   let match = clean.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
   if (match) {
@@ -41,11 +42,11 @@ function parseDateAsUtc(dateStr: string): Date {
   if (isNaN(d.getTime())) {
     throw new Error(`Invalid date format: ${dateStr}`);
   }
-  
+
   if (!clean.includes('T') && !clean.includes(':')) {
     return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   }
-  
+
   return d;
 }
 
@@ -116,5 +117,10 @@ export class PublishersController {
   @Get(':id/rev-share')
   async getRevShareHistory(@Param('id') id: string) {
     return this.publishersService.getRevenueShareHistory(id);
+  }
+
+  @Delete(':id')
+  async deletePublisher(@Param('id') id: string) {
+    return this.publishersService.delete(id);
   }
 }

@@ -10,15 +10,22 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seeding...');
 
-  // 1. Create Users & Super Admin
+  // 1. Purge existing data to ensure clean, complete seeding
+  console.log('🧹 Purging existing database tables...');
+  await prisma.notificationRead.deleteMany({});
+  await prisma.notification.deleteMany({});
+  await prisma.auditLog.deleteMany({});
+  await prisma.uploadLog.deleteMany({});
+  await prisma.revenueReport.deleteMany({});
+  await prisma.tag.deleteMany({});
+  await prisma.website.deleteMany({});
+  await prisma.revenueShareConfig.deleteMany({});
+  await prisma.publisher.deleteMany({});
+  await prisma.user.deleteMany({});
+  console.log('🧹 Database clean! Seeding new records...');
+
   const adminEmail = 'contact@rollinhead.com';
   const publisherEmail = 'publisher@rollinhead.com';
-
-  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
-  if (existingAdmin) {
-    console.log('⚠️ Seed skipped: Admin user already exists.');
-    return;
-  }
 
   // Hash passwords
   const adminPasswordHash = await bcrypt.hash('admin123', 10);

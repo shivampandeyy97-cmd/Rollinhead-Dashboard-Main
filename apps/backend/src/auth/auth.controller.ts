@@ -63,10 +63,11 @@ export class AuthController {
     // Try to extract and decode JWT to check if requester is an admin
     let requesterRole: string | undefined = undefined;
     try {
-      const token = req.cookies?.access_token || 
-                    (req.headers.authorization?.startsWith('Bearer ') 
-                      ? req.headers.authorization.substring(7) 
-                      : null);
+      const token =
+        req.cookies?.access_token ||
+        (req.headers.authorization?.startsWith('Bearer ')
+          ? req.headers.authorization.substring(7)
+          : null);
       if (token) {
         const payload = this.jwtService.verify(token);
         requesterRole = payload?.role;
@@ -75,11 +76,14 @@ export class AuthController {
       // Ignore token verification errors (means it is an unauthenticated guest signup)
     }
 
-    const isAdminOnboard = requesterRole === 'ADMIN' || requesterRole === 'SUPER_ADMIN';
+    const isAdminOnboard =
+      requesterRole === 'ADMIN' || requesterRole === 'SUPER_ADMIN';
 
     if (!email || !name || (!isAdminOnboard && !password) || !companyName) {
       throw new BadRequestException(
-        'Email, Name, ' + (isAdminOnboard ? '' : 'Password, ') + 'and Company Name are required',
+        'Email, Name, ' +
+          (isAdminOnboard ? '' : 'Password, ') +
+          'and Company Name are required',
       );
     }
 
@@ -161,11 +165,15 @@ export class AuthController {
   @Post('purge-db')
   async purgeDatabase(@Req() req: any, @Body() body: any) {
     if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
-      throw new ForbiddenException('Only administrators can purge the database');
+      throw new ForbiddenException(
+        'Only administrators can purge the database',
+      );
     }
     const { password } = body;
     if (!password) {
-      throw new BadRequestException('Administrator password is required to reset the database');
+      throw new BadRequestException(
+        'Administrator password is required to reset the database',
+      );
     }
     return this.authService.purgeProductionDatabase(req.user.id, password);
   }
@@ -173,7 +181,9 @@ export class AuthController {
   @Get('smtp-status')
   async checkSmtpStatus() {
     const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+    const port = process.env.SMTP_PORT
+      ? parseInt(process.env.SMTP_PORT, 10)
+      : 587;
     const smtpUser = process.env.SMTP_USER;
     const smtpPass = process.env.SMTP_PASS;
     const from = 'Rollinhead <contact@rollinhead.com>';
@@ -187,7 +197,7 @@ export class AuthController {
       try {
         const response = await fetch('https://api.resend.com/domains', {
           headers: {
-            'Authorization': `Bearer ${smtpPass}`,
+            Authorization: `Bearer ${smtpPass}`,
           },
         });
         if (response.ok) {
@@ -254,4 +264,3 @@ export class AuthController {
     };
   }
 }
-

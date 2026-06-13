@@ -103,9 +103,13 @@ export class AuthService {
     }
 
     // Auto-generate secure temporary password if not provided by admin
-    const rawPassword = data.password || 'rollinhead_' + Math.random().toString(36).substring(2, 10);
+    const rawPassword =
+      data.password ||
+      'rollinhead_' + Math.random().toString(36).substring(2, 10);
     const passwordHash = await this.hashPassword(rawPassword);
-    const isAdminOnboarded = requesterRole === UserRole.ADMIN || requesterRole === UserRole.SUPER_ADMIN;
+    const isAdminOnboarded =
+      requesterRole === UserRole.ADMIN ||
+      requesterRole === UserRole.SUPER_ADMIN;
 
     // Run in a transaction to create User, Publisher, and default Revenue Share Config
     const result = await this.prisma.$transaction(async (tx) => {
@@ -129,7 +133,9 @@ export class AuthService {
           paymentDetails:
             data.paymentDetails || 'Bank Transfer details pending',
           paymentCycle: data.paymentCycle || PaymentCycle.NET_30,
-          status: isAdminOnboarded ? PublisherStatus.ACTIVE : PublisherStatus.PENDING,
+          status: isAdminOnboarded
+            ? PublisherStatus.ACTIVE
+            : PublisherStatus.PENDING,
         },
       });
 
@@ -148,7 +154,9 @@ export class AuthService {
       await tx.auditLog.create({
         data: {
           userId: user.id,
-          action: isAdminOnboarded ? 'PUBLISHER_ONBOARDED_BY_ADMIN' : 'PUBLISHER_REGISTER',
+          action: isAdminOnboarded
+            ? 'PUBLISHER_ONBOARDED_BY_ADMIN'
+            : 'PUBLISHER_REGISTER',
           entity: 'Publisher',
           entityId: publisher.id,
           newValue: { email: user.email, companyName: publisher.companyName },
@@ -163,8 +171,13 @@ export class AuthService {
     });
 
     // Send emails in the background using the generated or provided password
-    this.sendOnboardingOrReachoutEmails(result, result.publisher, rawPassword, requesterRole).catch(
-      (err) => console.error('Failed to dispatch onboarding/reachout emails:', err),
+    this.sendOnboardingOrReachoutEmails(
+      result,
+      result.publisher,
+      rawPassword,
+      requesterRole,
+    ).catch((err) =>
+      console.error('Failed to dispatch onboarding/reachout emails:', err),
     );
 
     return result;
@@ -178,53 +191,75 @@ export class AuthService {
   ) {
     const smtpPass = process.env.SMTP_PASS;
     const from = 'Rollinhead <contact@rollinhead.com>';
-    const isAdminOnboarded = requesterRole === 'ADMIN' || requesterRole === 'SUPER_ADMIN';
+    const isAdminOnboarded =
+      requesterRole === 'ADMIN' || requesterRole === 'SUPER_ADMIN';
     const frontendUrl = 'https://dash.rollinhead.com';
 
     // 1. Fallback: Log email details cleanly if API key isn't set
     if (!smtpPass) {
-      console.log('\n------------------------------------------------------------');
+      console.log(
+        '\n------------------------------------------------------------',
+      );
       if (isAdminOnboarded) {
-        console.log('📢 [SMTP CONFIG NOT SET] Rollinhead Welcome Onboarding Email');
+        console.log(
+          '📢 [SMTP CONFIG NOT SET] Rollinhead Welcome Onboarding Email',
+        );
         console.log(`To: ${user.name} <${user.email}>`);
-        console.log(`Subject: [Rollinhead] Welcome to the Publisher Dashboard!`);
-        console.log(`Body:\nHi ${user.name},\n\nWelcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.\n\nHere are your login credentials:\n  - Dashboard URL: ${frontendUrl}/\n  - Email Address: ${user.email}\n  - Temporary Password: ${passwordPlainText}\n\nYou can change your password at any time in your Account Settings panel.\n\nBest regards,\nRollinhead Ops Team`);
+        console.log(
+          `Subject: [Rollinhead] Welcome to the Publisher Dashboard!`,
+        );
+        console.log(
+          `Body:\nHi ${user.name},\n\nWelcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.\n\nHere are your login credentials:\n  - Dashboard URL: ${frontendUrl}/\n  - Email Address: ${user.email}\n  - Temporary Password: ${passwordPlainText}\n\nYou can change your password at any time in your Account Settings panel.\n\nBest regards,\nRollinhead Ops Team`,
+        );
       } else {
-        console.log('📢 [SMTP CONFIG NOT SET] Rollinhead Self-Registration Alert');
+        console.log(
+          '📢 [SMTP CONFIG NOT SET] Rollinhead Self-Registration Alert',
+        );
         console.log(`To: contact@rollinhead.com`);
         console.log(`Subject: New publisher reachout`);
-        console.log(`Body:\nA new publisher has self-registered on the Rollinhead Dashboard.\n\nPublisher Profile Details:\n  - Contact Name: ${user.name}\n  - Company Name: ${publisher.companyName}\n  - Email Address: ${user.email}\n  - Status: PENDING admin approval\n\nPlease log in to approve this partner's website inventory.\n\nLink: ${frontendUrl}/`);
+        console.log(
+          `Body:\nA new publisher has self-registered on the Rollinhead Dashboard.\n\nPublisher Profile Details:\n  - Contact Name: ${user.name}\n  - Company Name: ${publisher.companyName}\n  - Email Address: ${user.email}\n  - Status: PENDING admin approval\n\nPlease log in to approve this partner's website inventory.\n\nLink: ${frontendUrl}/`,
+        );
       }
-      console.log('------------------------------------------------------------\n');
+      console.log(
+        '------------------------------------------------------------\n',
+      );
 
       // Log skip in AuditLog database table
-      await this.prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          action: 'EMAIL_SKIPPED_SMTP_NOT_CONFIGURED',
-          entity: 'Publisher',
-          entityId: publisher.id,
-          newValue: {
-            recipient: isAdminOnboarded ? user.email : 'contact@rollinhead.com',
-            type: isAdminOnboarded ? 'ONBOARDING' : 'REACHOUT',
-            reason: 'SMTP_PASS (Resend API Key) environment variable is missing.',
+      await this.prisma.auditLog
+        .create({
+          data: {
+            userId: user.id,
+            action: 'EMAIL_SKIPPED_SMTP_NOT_CONFIGURED',
+            entity: 'Publisher',
+            entityId: publisher.id,
+            newValue: {
+              recipient: isAdminOnboarded
+                ? user.email
+                : 'contact@rollinhead.com',
+              type: isAdminOnboarded ? 'ONBOARDING' : 'REACHOUT',
+              reason:
+                'SMTP_PASS (Resend API Key) environment variable is missing.',
+            },
           },
-        },
-      }).catch((e) => console.error('Failed to log email skip to DB:', e));
+        })
+        .catch((e) => console.error('Failed to log email skip to DB:', e));
 
       return;
     }
 
     // 2. Send actual emails using Resend HTTP API (bypassing SMTP port blocking)
     try {
-      const recipient = isAdminOnboarded ? user.email : 'contact@rollinhead.com';
+      const recipient = isAdminOnboarded
+        ? user.email
+        : 'contact@rollinhead.com';
       const subject = isAdminOnboarded
         ? '[Rollinhead] Welcome to the Publisher Dashboard!'
         : 'New publisher reachout';
       const text = isAdminOnboarded
         ? `Hi ${user.name},\n\nWelcome to your new Rollinhead publisher dashboard! You have been onboarded as a partner by our administrator.\n\nHere are your login credentials:\n  - Dashboard URL: ${frontendUrl}/\n  - Email Address: ${user.email}\n  - Temporary Password: ${passwordPlainText}\n\nYou can change your password at any time in your Account Settings panel.\n\nBest regards,\nRollinhead Ops Team`
         : `Hi Ops Team,\n\nA new publisher has self-registered on the Rollinhead Dashboard.\n\nPublisher Profile Details:\n  - Contact Name: ${user.name}\n  - Company Name: ${publisher.companyName}\n  - Email Address: ${user.email}\n  - Status: PENDING admin approval\n\nPlease log in to approve this partner's website inventory.\n\nLink: ${frontendUrl}/`;
-      
+
       const html = isAdminOnboarded
         ? `
           <div style="font-family: sans-serif; padding: 25px; max-width: 600px; border: 1px solid #e9ecef; border-radius: 8px; color: #333;">
@@ -264,7 +299,7 @@ export class AuthService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${smtpPass}`,
+          Authorization: `Bearer ${smtpPass}`,
         },
         body: JSON.stringify({
           from,
@@ -277,38 +312,47 @@ export class AuthService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Resend HTTP API returned status ${response.status}: ${errorText}`);
+        throw new Error(
+          `Resend HTTP API returned status ${response.status}: ${errorText}`,
+        );
       }
 
       const resData = await response.json();
 
       // Log success
-      await this.prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          action: isAdminOnboarded ? 'EMAIL_ONBOARDING_SENT_SUCCESS' : 'EMAIL_REACHOUT_SENT_SUCCESS',
-          entity: 'Publisher',
-          entityId: publisher.id,
-          newValue: { recipient, resendId: resData.id },
-        },
-      }).catch((e) => console.error('Failed to log email success to DB:', e));
-
+      await this.prisma.auditLog
+        .create({
+          data: {
+            userId: user.id,
+            action: isAdminOnboarded
+              ? 'EMAIL_ONBOARDING_SENT_SUCCESS'
+              : 'EMAIL_REACHOUT_SENT_SUCCESS',
+            entity: 'Publisher',
+            entityId: publisher.id,
+            newValue: { recipient, resendId: resData.id },
+          },
+        })
+        .catch((e) => console.error('Failed to log email success to DB:', e));
     } catch (err: any) {
       console.error('Failed to send emails via Resend HTTP API:', err);
       // Log failure in AuditLog
-      await this.prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          action: 'EMAIL_SENT_FAILURE',
-          entity: 'Publisher',
-          entityId: publisher.id,
-          newValue: {
-            recipient: isAdminOnboarded ? user.email : 'contact@rollinhead.com',
-            error: err.message || String(err),
-            type: isAdminOnboarded ? 'ONBOARDING' : 'REACHOUT',
+      await this.prisma.auditLog
+        .create({
+          data: {
+            userId: user.id,
+            action: 'EMAIL_SENT_FAILURE',
+            entity: 'Publisher',
+            entityId: publisher.id,
+            newValue: {
+              recipient: isAdminOnboarded
+                ? user.email
+                : 'contact@rollinhead.com',
+              error: err.message || String(err),
+              type: isAdminOnboarded ? 'ONBOARDING' : 'REACHOUT',
+            },
           },
-        },
-      }).catch((e) => console.error('Failed to log email failure to DB:', e));
+        })
+        .catch((e) => console.error('Failed to log email failure to DB:', e));
     }
   }
 
@@ -346,12 +390,18 @@ export class AuthService {
 
     if (!user) {
       // Generic message to avoid user enumeration
-      return { message: 'If the email exists in our system, a temporary password has been sent.' };
+      return {
+        message:
+          'If the email exists in our system, a temporary password has been sent.',
+      };
     }
 
     if (!user.isActive) {
       // Inactive user security
-      return { message: 'If the email exists in our system, a temporary password has been sent.' };
+      return {
+        message:
+          'If the email exists in our system, a temporary password has been sent.',
+      };
     }
 
     // Generate secure temporary password
@@ -369,12 +419,18 @@ export class AuthService {
     const frontendUrl = 'https://dash.rollinhead.com';
 
     if (!smtpPass) {
-      console.log('\n------------------------------------------------------------');
+      console.log(
+        '\n------------------------------------------------------------',
+      );
       console.log('📢 [SMTP CONFIG NOT SET] Rollinhead Password Reset Email');
       console.log(`To: ${user.name} <${user.email}>`);
       console.log(`Subject: [Rollinhead] Temporary Password Reset`);
-      console.log(`Body:\nHi ${user.name},\n\nYou requested a password reset. A temporary password has been generated for you:\n\nTemporary Password: ${tempPassword}\n\nPlease use this to log in at ${frontendUrl}/login and then update your password immediately in your Account Settings panel.\n\nBest regards,\nRollinhead Team`);
-      console.log('------------------------------------------------------------\n');
+      console.log(
+        `Body:\nHi ${user.name},\n\nYou requested a password reset. A temporary password has been generated for you:\n\nTemporary Password: ${tempPassword}\n\nPlease use this to log in at ${frontendUrl}/login and then update your password immediately in your Account Settings panel.\n\nBest regards,\nRollinhead Team`,
+      );
+      console.log(
+        '------------------------------------------------------------\n',
+      );
     } else {
       try {
         const subject = '[Rollinhead] Temporary Password Reset';
@@ -401,7 +457,7 @@ export class AuthService {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${smtpPass}`,
+            Authorization: `Bearer ${smtpPass}`,
           },
           body: JSON.stringify({
             from,
@@ -418,32 +474,44 @@ export class AuthService {
         });
 
         // Audit log success
-        await this.prisma.auditLog.create({
-          data: {
-            userId: user.id,
-            action: 'PASSWORD_RESET_EMAIL_SENT_SUCCESS',
-            entity: 'User',
-            entityId: user.id,
-            newValue: { email: user.email },
-          },
-        }).catch((e) => console.error('Failed to log reset success to DB:', e));
-
+        await this.prisma.auditLog
+          .create({
+            data: {
+              userId: user.id,
+              action: 'PASSWORD_RESET_EMAIL_SENT_SUCCESS',
+              entity: 'User',
+              entityId: user.id,
+              newValue: { email: user.email },
+            },
+          })
+          .catch((e) => console.error('Failed to log reset success to DB:', e));
       } catch (err: any) {
-        console.error('Failed to send password reset email via Resend API:', err);
+        console.error(
+          'Failed to send password reset email via Resend API:',
+          err,
+        );
         // Audit log failure
-        await this.prisma.auditLog.create({
-          data: {
-            userId: user.id,
-            action: 'PASSWORD_RESET_EMAIL_SENT_FAILURE',
-            entity: 'User',
-            entityId: user.id,
-            newValue: { email: user.email, error: err.message || String(err) },
-          },
-        }).catch((e) => console.error('Failed to log reset failure to DB:', e));
+        await this.prisma.auditLog
+          .create({
+            data: {
+              userId: user.id,
+              action: 'PASSWORD_RESET_EMAIL_SENT_FAILURE',
+              entity: 'User',
+              entityId: user.id,
+              newValue: {
+                email: user.email,
+                error: err.message || String(err),
+              },
+            },
+          })
+          .catch((e) => console.error('Failed to log reset failure to DB:', e));
       }
     }
 
-    return { message: 'If the email exists in our system, a temporary password has been sent.' };
+    return {
+      message:
+        'If the email exists in our system, a temporary password has been sent.',
+    };
   }
 
   async updateProfile(
@@ -526,9 +594,9 @@ export class AuthService {
     await this.prisma.user.deleteMany({
       where: {
         email: {
-          not: 'contact@rollinhead.com'
-        }
-      }
+          not: 'contact@rollinhead.com',
+        },
+      },
     });
     return { message: 'Production database successfully purged!' };
   }
@@ -560,4 +628,3 @@ export class AuthService {
     }
   }
 }
-

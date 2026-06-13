@@ -4,7 +4,7 @@ import { UserRole, DeviceType } from '@prisma/client';
 
 function parseDateAsUtc(dateStr: string): Date {
   const clean = dateStr.trim();
-  
+
   // 1. Try YYYY-MM-DD or YYYY/MM/DD
   let match = clean.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
   if (match) {
@@ -28,11 +28,11 @@ function parseDateAsUtc(dateStr: string): Date {
   if (isNaN(d.getTime())) {
     throw new Error(`Invalid date format: ${dateStr}`);
   }
-  
+
   if (!clean.includes('T') && !clean.includes(':')) {
     return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   }
-  
+
   return d;
 }
 
@@ -184,7 +184,7 @@ export class ReportsService {
         where: { userId: params.userId },
       });
       if (!publisher) return [];
-      
+
       if (params.websiteId) {
         const website = await this.prisma.website.findFirst({
           where: { id: params.websiteId, publisherId: publisher.id },
@@ -280,7 +280,7 @@ export class ReportsService {
         where: { userId: params.userId },
       });
       if (!publisher) return [];
-      
+
       if (params.websiteId) {
         const website = await this.prisma.website.findFirst({
           where: { id: params.websiteId, publisherId: publisher.id },
