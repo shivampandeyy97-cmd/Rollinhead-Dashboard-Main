@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, API_URL } from '../../../lib/api';
 import { useAuthStore } from '../../../stores/auth';
-import { Loader2, Download, Table, Calendar, Laptop, Globe2, Layers } from 'lucide-react';
+import { Loader2, Download, Table, Calendar } from 'lucide-react';
 
 export default function ReportsPage() {
   const user = useAuthStore((state) => state.user);
@@ -17,9 +17,7 @@ export default function ReportsPage() {
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [websiteId, setWebsiteId] = useState('');
-  const [country, setCountry] = useState('');
-  const [device, setDevice] = useState('');
-  const [groupBy, setGroupBy] = useState('date');
+  const groupBy = 'date';
 
   // Query websites for selection
   const { data: websites } = useQuery({
@@ -30,14 +28,12 @@ export default function ReportsPage() {
 
   // Query breakdown report
   const { data: breakdown, isLoading, error } = useQuery({
-    queryKey: ['reports-breakdown', startDate, endDate, websiteId, country, device, groupBy],
+    queryKey: ['reports-breakdown', startDate, endDate, websiteId, groupBy],
     queryFn: () => {
       const q = new URLSearchParams();
       if (startDate) q.append('startDate', startDate);
       if (endDate) q.append('endDate', endDate);
       if (websiteId) q.append('websiteId', websiteId);
-      if (country) q.append('country', country);
-      if (device) q.append('device', device);
       if (groupBy) q.append('groupBy', groupBy);
       
       return api.get(`/reports/breakdown?${q.toString()}`);
@@ -63,8 +59,6 @@ export default function ReportsPage() {
     if (startDate) q.append('startDate', startDate);
     if (endDate) q.append('endDate', endDate);
     if (websiteId) q.append('websiteId', websiteId);
-    if (country) q.append('country', country);
-    if (device) q.append('device', device);
     if (groupBy) q.append('groupBy', groupBy);
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('rollinhead_token') : '';
@@ -98,7 +92,7 @@ export default function ReportsPage() {
       <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
         <h3 className="text-xs font-black uppercase text-[#e50914] tracking-wider mb-4">Report Configurations</h3>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           
           {/* Start Date */}
           <div>
@@ -126,21 +120,6 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Group By */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Drilldown (Group By)</label>
-            <select
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value)}
-              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all cursor-pointer shadow-sm"
-            >
-              <option value="date">Date</option>
-              <option value="website">Website</option>
-              <option value="country">Country</option>
-              <option value="device">Device</option>
-            </select>
-          </div>
-
           {/* Website Filter */}
           <div>
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Website Filter</label>
@@ -153,33 +132,6 @@ export default function ReportsPage() {
               {websites && websites.map((w: any) => (
                 <option key={w.id} value={w.id}>{w.domain}</option>
               ))}
-            </select>
-          </div>
-
-          {/* Country Filter */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Country Code</label>
-            <input
-              type="text"
-              placeholder="e.g. USA, GBR"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all uppercase placeholder-slate-400 shadow-sm"
-            />
-          </div>
-
-          {/* Device Filter */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Device</label>
-            <select
-              value={device}
-              onChange={(e) => setDevice(e.target.value)}
-              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all cursor-pointer shadow-sm"
-            >
-              <option value="">All Devices</option>
-              <option value="DESKTOP">Desktop</option>
-              <option value="MOBILE">Mobile</option>
-              <option value="TABLET">Tablet</option>
             </select>
           </div>
 
@@ -233,10 +185,7 @@ export default function ReportsPage() {
                   return (
                     <tr key={i} className="hover:bg-slate-50/50 transition-all">
                       <td className="px-6 py-4 font-bold text-slate-900 flex items-center space-x-2">
-                        {groupBy === 'date' && <Calendar className="h-3.5 w-3.5 text-slate-400" />}
-                        {groupBy === 'device' && <Laptop className="h-3.5 w-3.5 text-slate-400" />}
-                        {groupBy === 'country' && <Globe2 className="h-3.5 w-3.5 text-slate-400" />}
-                        {groupBy === 'website' && <Layers className="h-3.5 w-3.5 text-slate-400" />}
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
                         <span>{row.dimension}</span>
                       </td>
                       <td className="px-6 py-4 text-slate-500">{imps.toLocaleString()}</td>

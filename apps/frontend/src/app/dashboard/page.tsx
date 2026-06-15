@@ -14,8 +14,6 @@ import {
   Globe,
   AlertCircle,
   Filter,
-  Calendar,
-  Laptop,
   Download
 } from 'lucide-react';
 import { 
@@ -43,8 +41,6 @@ export default function OverviewPage() {
   
   const [websiteId, setWebsiteId] = useState('');
   const [publisherId, setPublisherId] = useState('');
-  const [country, setCountry] = useState('');
-  const [device, setDevice] = useState('');
   const [chartMetric, setChartMetric] = useState('netRevenue');
 
   // Query websites for filter dropdown
@@ -93,21 +89,17 @@ export default function OverviewPage() {
     setEndDate(d.toISOString().split('T')[0]);
     setWebsiteId('');
     setPublisherId('');
-    setCountry('');
-    setDevice('');
   };
 
   // Queries overview stats
   const { data: overview, isLoading: overviewLoading } = useQuery({
-    queryKey: ['overview', startDate, endDate, websiteId, publisherId, country, device],
+    queryKey: ['overview', startDate, endDate, websiteId, publisherId],
     queryFn: () => {
       const q = new URLSearchParams();
       if (startDate) q.append('startDate', startDate);
       if (endDate) q.append('endDate', endDate);
       if (websiteId) q.append('websiteId', websiteId);
       if (publisherId) q.append('publisherId', publisherId);
-      if (country) q.append('country', country);
-      if (device) q.append('device', device);
       return api.get(`/reports/overview?${q.toString()}`);
     },
     retry: false,
@@ -115,15 +107,13 @@ export default function OverviewPage() {
 
   // Queries chart performance
   const { data: performance, isLoading: performanceLoading } = useQuery({
-    queryKey: ['performance', startDate, endDate, websiteId, publisherId, country, device],
+    queryKey: ['performance', startDate, endDate, websiteId, publisherId],
     queryFn: () => {
       const q = new URLSearchParams();
       if (startDate) q.append('startDate', startDate);
       if (endDate) q.append('endDate', endDate);
       if (websiteId) q.append('websiteId', websiteId);
       if (publisherId) q.append('publisherId', publisherId);
-      if (country) q.append('country', country);
-      if (device) q.append('device', device);
       return api.get(`/reports/performance?${q.toString()}`);
     },
     retry: false,
@@ -131,15 +121,13 @@ export default function OverviewPage() {
 
   // Queries website breakdown for the table
   const { data: breakdown, isLoading: breakdownLoading } = useQuery({
-    queryKey: ['breakdown', startDate, endDate, websiteId, publisherId, country, device],
+    queryKey: ['breakdown', startDate, endDate, websiteId, publisherId],
     queryFn: () => {
       const q = new URLSearchParams();
       if (startDate) q.append('startDate', startDate);
       if (endDate) q.append('endDate', endDate);
       if (websiteId) q.append('websiteId', websiteId);
       if (publisherId) q.append('publisherId', publisherId);
-      if (country) q.append('country', country);
-      if (device) q.append('device', device);
       q.append('groupBy', 'website');
       return api.get(`/reports/breakdown?${q.toString()}`);
     },
@@ -155,8 +143,6 @@ export default function OverviewPage() {
     if (endDate) q.append('endDate', endDate);
     if (websiteId) q.append('websiteId', websiteId);
     if (publisherId) q.append('publisherId', publisherId);
-    if (country) q.append('country', country);
-    if (device) q.append('device', device);
     q.append('groupBy', 'website');
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('rollinhead_token') : '';
@@ -232,7 +218,7 @@ export default function OverviewPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           
           {/* Preset Selector */}
           <div>
@@ -302,33 +288,6 @@ export default function OverviewPage() {
               </select>
             </div>
           )}
-
-          {/* Device Selection */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Device Type</label>
-            <select
-              value={device}
-              onChange={(e) => setDevice(e.target.value)}
-              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all cursor-pointer shadow-sm"
-            >
-              <option value="">All Devices</option>
-              <option value="DESKTOP">Desktop</option>
-              <option value="MOBILE">Mobile</option>
-              <option value="TABLET">Tablet</option>
-            </select>
-          </div>
-
-          {/* Country Selection */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Country Code</label>
-            <input
-              type="text"
-              placeholder="e.g. USA, GBR"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              className="w-full bg-white border border-slate-200 focus:border-[#e50914] text-slate-900 rounded-lg py-2 px-3 text-xs focus:outline-none transition-all uppercase placeholder-slate-400 shadow-sm"
-            />
-          </div>
 
         </div>
       </div>
