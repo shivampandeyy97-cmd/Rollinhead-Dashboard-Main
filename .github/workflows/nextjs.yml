@@ -54,8 +54,10 @@ jobs:
       - name: Build Frontend with Next.js
         run: pnpm --filter frontend build
 
-      - name: Create .nojekyll Bypass File
-        run: touch apps/frontend/out/.nojekyll
+      - name: Create .nojekyll & CNAME Files
+        run: |
+          touch apps/frontend/out/.nojekyll
+          echo "dash.rollinhead.com" > apps/frontend/out/CNAME
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -1,0 +1,63 @@
+# =============================================================================
+# Rollinhead Dashboard — Staging Deployment Pipeline
+# =============================================================================
+
+name: Deploy Staging Dashboard
+
+on:
+  push:
+    branches: ["staging"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "staging-pages"
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy-staging:
+    runs-on: ubuntu-latest
+    environment:
+      name: staging-github-pages
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 11.4.0
+
+      - name: Setup Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install Monorepo Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: |
+          cd apps/backend
+          npx prisma generate
+
+      - name: Build Staging Frontend
+        env:
+          NEXT_PUBLIC_API_URL: "https://staging-api.rollinhead.com/api"
+        run: pnpm --filter frontend build
+
+      - name: Create .nojekyll & Staging CNAME File
+        run: |
+          touch apps/frontend/out/.nojekyll
+          echo "staging.rollinhead.com" > apps/frontend/out/CNAME
+
+      - name: Deploy to Staging Pages Branch
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: apps/frontend/out
+          branch: gh-pages-staging

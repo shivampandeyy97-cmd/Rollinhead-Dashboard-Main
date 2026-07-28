@@ -17,8 +17,12 @@ async function bootstrap() {
   // Define allowed origins for CORS
   const allowedOrigins = [
     'http://localhost:3000',
-    'https://shivampandeyy97-cmd.github.io',
+    'http://localhost:3001',
     'https://dash.rollinhead.com',
+    'http://dash.rollinhead.com',
+    'https://staging.rollinhead.com',
+    'http://staging.rollinhead.com',
+    'https://shivampandeyy97-cmd.github.io',
     'https://frontend-production-aae5.up.railway.app',
   ];
   if (process.env.CORS_ORIGIN) {

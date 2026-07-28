@@ -2,7 +2,7 @@
 // Rollinhead Dashboard — API Fetch Client
 // =============================================================================
 
-// Resolve API URL dynamically based on environment or manual user preference
+// Resolve API URL dynamically based on environment, current domain, or manual preference
 export const getApiUrl = () => {
   if (typeof window === 'undefined') {
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -10,17 +10,34 @@ export const getApiUrl = () => {
 
   // Allow manual toggle via localStorage preference
   const pref = localStorage.getItem('rollinhead_api_pref');
-  if (pref === 'cloud') {
-    return 'https://backend-production-f7e2.up.railway.app/api';
+  if (pref === 'cloud' || pref === 'prod') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://backend.rollinhead.com/api';
+  }
+  if (pref === 'staging') {
+    return process.env.NEXT_PUBLIC_STAGING_API_URL || 'https://staging-api.rollinhead.com/api';
   }
   if (pref === 'local') {
     return 'http://localhost:4000/api';
   }
 
   // Default automatic detection based on current domain
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  return process.env.NEXT_PUBLIC_API_URL || 
-    (isLocal ? 'http://localhost:4000/api' : 'https://backend-production-f7e2.up.railway.app/api');
+  const hostname = window.location.hostname;
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isStaging = hostname.includes('staging');
+
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  if (isLocal) {
+    return 'http://localhost:4000/api';
+  }
+
+  if (isStaging) {
+    return process.env.NEXT_PUBLIC_STAGING_API_URL || 'https://staging-api.rollinhead.com/api';
+  }
+
+  return 'https://backend.rollinhead.com/api';
 };
 
 export const API_URL = getApiUrl();
