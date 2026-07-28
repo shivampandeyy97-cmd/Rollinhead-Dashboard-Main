@@ -55,6 +55,29 @@ async function main() {
   });
   console.log('✅ Created Publisher user (publisher@rollinhead.com / publisher123)');
 
+  // Rishu Sehrawat Publisher Account
+  const rishuHash = await bcrypt.hash('RishuPassword123', 10);
+  const rishuUser = await prisma.user.create({
+    data: {
+      email: 'rishusehrawat8441@gmail.com',
+      name: 'Rishu Sehrawat',
+      passwordHash: rishuHash,
+      role: UserRole.PUBLISHER,
+      isActive: true,
+    },
+  });
+  await prisma.publisher.create({
+    data: {
+      userId: rishuUser.id,
+      companyName: 'Rishu Sehrawat Media',
+      contactEmail: 'rishusehrawat8441@gmail.com',
+      paymentDetails: 'Bank Transfer - IBAN: DE99 1234 5678 9012 3456 78',
+      paymentCycle: PaymentCycle.NET_30,
+      status: PublisherStatus.ACTIVE,
+    },
+  });
+  console.log('✅ Created Rishu Sehrawat user (rishusehrawat8441@gmail.com / RishuPassword123)');
+
   // 2. Create Publisher Profile
   const publisher = await prisma.publisher.create({
     data: {

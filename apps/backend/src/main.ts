@@ -167,6 +167,52 @@ async function bootstrap() {
       );
     }
 
+    // 2.1 Ensure rishusehrawat8441@gmail.com exists
+    const rishuEmail = 'rishusehrawat8441@gmail.com';
+    const rishuHash = await bcrypt.hash('RishuPassword123', 10);
+    let rishuUser = await prismaInstance.user.findUnique({
+      where: { email: rishuEmail },
+    });
+    if (!rishuUser) {
+      rishuUser = await prismaInstance.user.create({
+        data: {
+          email: rishuEmail,
+          name: 'Rishu Sehrawat',
+          passwordHash: rishuHash,
+          role: UserRole.PUBLISHER,
+          isActive: true,
+        },
+      });
+      console.log(`[STARTUP] Created new user: ${rishuEmail}`);
+    } else {
+      await prismaInstance.user.update({
+        where: { id: rishuUser.id },
+        data: {
+          passwordHash: rishuHash,
+          isActive: true,
+        },
+      });
+      console.log(`[STARTUP] Verified ${rishuEmail} credentials`);
+    }
+
+    // Ensure publisher profile for rishu
+    let rishuPub = await prismaInstance.publisher.findUnique({
+      where: { userId: rishuUser.id },
+    });
+    if (!rishuPub) {
+      await prismaInstance.publisher.create({
+        data: {
+          userId: rishuUser.id,
+          companyName: 'Rishu Sehrawat Media',
+          contactEmail: rishuEmail,
+          paymentDetails: 'Bank Transfer - IBAN: DE99 1234 5678 9012 3456 78',
+          paymentCycle: 'NET_30' as any,
+          status: 'ACTIVE' as any,
+        },
+      });
+      console.log(`[STARTUP] Created publisher profile for ${rishuEmail}`);
+    }
+
     // 2.5 Deduplicate any duplicate reports in the database
     try {
       console.log('[STARTUP] Deduplicating reports in database...');
