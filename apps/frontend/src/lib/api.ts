@@ -37,7 +37,12 @@ export const getApiUrl = () => {
     return process.env.NEXT_PUBLIC_STAGING_API_URL || 'http://localhost:4001/api';
   }
 
-  // Fallback to local running backend port 4000 if no remote cloud API URL is set
+  // When loaded over HTTPS on dash.rollinhead.com, connect to the secure HTTPS API tunnel
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://rollinhead-backend-2026.loca.lt/api';
+  }
+
+  // Fallback to local running backend port 4000
   return 'http://localhost:4000/api';
 };
 
@@ -52,6 +57,9 @@ class ApiClient {
     if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
       headers.set('Content-Type', 'application/json');
     }
+
+    // Bypass tunnel reminder page for HTTPS tunnel
+    headers.set('bypass-tunnel-reminder', 'true');
 
     // Attach JWT Bearer Token if stored
     const token = typeof window !== 'undefined' ? localStorage.getItem('rollinhead_token') : null;

@@ -23,6 +23,7 @@ async function bootstrap() {
     'https://staging.rollinhead.com',
     'http://staging.rollinhead.com',
     'https://shivampandeyy97-cmd.github.io',
+    'https://rollinhead-backend-2026.loca.lt',
     'https://frontend-production-aae5.up.railway.app',
   ];
   if (process.env.CORS_ORIGIN) {
@@ -45,7 +46,7 @@ async function bootstrap() {
     origin: allowedOrigins,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization, Cookie',
+    allowedHeaders: 'Content-Type, Accept, Authorization, Cookie, bypass-tunnel-reminder',
   });
 
   // Global validation pipe
